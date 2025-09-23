@@ -276,21 +276,36 @@ const Clientes = () => {
           console.error('Error al enviar correo de bienvenida:', emailError);
         }
 
-        // Obtener roles disponibles
-        const rolesResponse = await axios.get('http://localhost:3000/api/roles');
-        const roles = rolesResponse.data.roles || rolesResponse.data || [];
-        const clienteRol = Array.isArray(roles)
-          ? roles.find((rol) => rol.nombre === 'Cliente')
-          : null;
+        // Obtener roles disponibles y asignar según selección de Beneficiario
+      const rolesResponse = await axios.get('http://localhost:3000/api/roles');
+      const roles = rolesResponse.data.roles || rolesResponse.data || [];
 
-        if (!clienteRol) throw new Error('Rol "Cliente" not found');
+      // Buscar roles "Cliente" y "Beneficiario"
+      const clienteRol = Array.isArray(roles)
+        ? roles.find((rol) => (rol.nombre || '').toLowerCase() === 'cliente')
+        : null;
+      const beneficiarioRol = Array.isArray(roles)
+        ? roles.find((rol) => (rol.nombre || '').toLowerCase() === 'beneficiario')
+        : null;
 
-        // Crear relación usuario-rol
-        const usuarioHasRolResponse = await axios.post('http://localhost:3000/api/usuarios_has_rol', {
-          usuarioId,
-          rolId: clienteRol._id
-        });
-        const usuario_has_rolId = usuarioHasRolResponse.data._id || usuarioHasRolResponse.data[0]?._id;
+      if (!clienteRol) throw new Error('Rol "Cliente" not found');
+
+      // Construir array de roles a asignar:
+      // 1) Solo "Cliente" si no se selecciona Beneficiario
+      // 2) "Cliente" y "Beneficiario" si se selecciona Beneficiario
+      const rolIds = [clienteRol._id];
+      if (formDataSinConfirmacion.esBeneficiario && beneficiarioRol?._id) {
+        rolIds.push(beneficiarioRol._id);
+      }
+
+      // Crear/actualizar relación usuario-rol con todos los roles requeridos
+      const usuarioHasRolResponse = await axios.post('http://localhost:3000/api/usuarios_has_rol', {
+        usuarioId,
+        rolId: rolIds
+      });
+
+      // Este endpoint retorna la(s) relación(es) con rolId poblado.
+      const usuario_has_rolId = usuarioHasRolResponse.data._id || usuarioHasRolResponse.data[0]?._id;
 
         // Crear beneficiario
         const beneficiarioData = {

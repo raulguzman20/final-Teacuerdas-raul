@@ -374,7 +374,7 @@ const VentaMatriculas = () => {
 
             const usuarioHasRolClienteResponse = await axios.post(`${API_BASE_URL}/usuarios_has_rol`, {
               usuarioId: usuarioClienteId,
-              rolId: clienteRol._id,
+              rolId: [clienteRol._id],
             })
             const usuarioHasRolClienteId = Array.isArray(usuarioHasRolClienteResponse.data)
               ? usuarioHasRolClienteResponse.data[0]._id
@@ -442,11 +442,18 @@ const VentaMatriculas = () => {
           const rolesResponse = await axios.get(`${API_BASE_URL}/roles`)
           const roles = Array.isArray(rolesResponse.data.roles) ? rolesResponse.data.roles : rolesResponse.data
           const beneficiarioRol = roles.find((rol) => rol.nombre.toLowerCase() === "beneficiario")
+          const clienteRolParaBenef = roles.find((rol) => rol.nombre.toLowerCase() === "cliente")
           if (!beneficiarioRol) throw new Error('Rol "Beneficiario" no encontrado')
-
+          
+          let rolIds = [beneficiarioRol._id]
+          if (clienteEsBeneficiario) {
+            if (!clienteRolParaBenef) throw new Error('Rol "Cliente" no encontrado')
+            rolIds = [clienteRolParaBenef._id, beneficiarioRol._id]
+          }
+          
           const usuarioHasRolBeneficiarioResponse = await axios.post(`${API_BASE_URL}/usuarios_has_rol`, {
             usuarioId: usuarioBeneficiarioId,
-            rolId: beneficiarioRol._id,
+            rolId: rolIds,
           })
           const usuarioHasRolBeneficiarioId = Array.isArray(usuarioHasRolBeneficiarioResponse.data)
             ? usuarioHasRolBeneficiarioResponse.data[0]._id

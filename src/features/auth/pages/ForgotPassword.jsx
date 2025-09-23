@@ -1,6 +1,6 @@
 // React imports
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { authService } from '../../../shared/services/auth.service';
 
 // Material-UI imports
@@ -13,6 +13,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Link,
 } from '@mui/material';
 
 // Asset imports
@@ -53,60 +54,76 @@ const ForgotPassword = () => {
 
   return (
     <Box sx={{
-      height: '100vh',
-      width: '100vw',
+      minHeight: '100vh',
+      width: '100%',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden'
+      m: 0,
+      p: 0,
+      overflow: 'hidden',
+      bgcolor: 'background.default',
     }}>
       <Container maxWidth={false} disableGutters sx={{
         height: '100%',
         width: '100%',
-        margin: 0,
-        padding: 0
+        m: 0,
+        p: 0,
       }}>
-        <Grid container sx={{ height: '100%', margin: 0 }}>
+        <Grid container sx={{ height: '100%', m: 0 }}>
           {/* Left side - Form */}
-          <Grid item xs={12} md={6} sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            padding: { xs: 2, md: 4 },
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            position: 'relative',
-            '&::before': {
-              content: '""',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(255, 255, 255, 0)',
-              zIndex: 1
-            }
-          }}>
-            <Card elevation={5} sx={{
-              maxWidth: 450,
-              mx: 'auto',
-              borderRadius: 2,
-              overflow: 'hidden',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          <Grid
+            item
+            xs={12}
+            md={6}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: { xs: 'auto', md: '100vh' },
+              p: { xs: 2, sm: 3, md: 4 },
+              backgroundImage: `url(${backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
               position: 'relative',
-              zIndex: 2
-            }}>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" align="center" sx={{ mb: 3, fontWeight: 600, color: '#0455a2' }}>
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                bgcolor: 'rgba(255, 255, 255, 0)',
+                zIndex: 1,
+              },
+            }}
+          >
+            <Card
+              elevation={5}
+              sx={{
+                width: '100%',
+                maxWidth: { xs: 420, sm: 440, md: 460 },
+                mx: 'auto',
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                position: 'relative',
+                zIndex: 2,
+              }}
+            >
+              <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                <Typography
+                  variant="h5"
+                  align="center"
+                  sx={{
+                    mb: 3,
+                    fontWeight: 600,
+                    color: '#0455a2',
+                    fontSize: { xs: '1.25rem', sm: '1.35rem', md: '1.5rem' },
+                  }}
+                >
                   Recuperar Contraseña
                 </Typography>
 
                 {message && (
-                  <Typography color="success" variant="body2" sx={{ mb: 2, textAlign: 'center' }}>
+                  <Typography color="success.main" variant="body2" sx={{ mb: 2, textAlign: 'center' }}>
                     {message}
                   </Typography>
                 )}
@@ -117,7 +134,7 @@ const ForgotPassword = () => {
                   </Typography>
                 )}
 
-                <form onSubmit={handleSubmit}>
+                <Box component="form" onSubmit={handleSubmit} noValidate>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <TextField
                       label="Email"
@@ -131,8 +148,8 @@ const ForgotPassword = () => {
                       size="small"
                       sx={{
                         '& .MuiOutlinedInput-root': {
-                          borderRadius: 1
-                        }
+                          borderRadius: 1,
+                        },
                       }}
                     />
 
@@ -143,70 +160,87 @@ const ForgotPassword = () => {
                       size="medium"
                       sx={{
                         mt: 2,
-                        py: 1,
-                        backgroundColor: '#0455a2',
+                        py: { xs: 1, sm: 1.25 },
+                        bgcolor: '#0455a2',
                         '&:hover': {
-                          backgroundColor: '#6c8221'
+                          bgcolor: '#6c8221',
                         },
                         fontWeight: 600,
                         textTransform: 'uppercase',
-                        fontSize: '0.875rem',
-                        borderRadius: 1
+                        fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                        borderRadius: 1,
                       }}
                     >
                       Enviar Enlace de Recuperación
                     </Button>
 
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                        <Link to="/" style={{ color: '#0455a2', textDecoration: 'none' }}>Volver al inicio de sesión</Link>
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.9rem' } }}>
+                        <Link component={RouterLink} to="/" sx={{ color: '#0455a2', textDecoration: 'none' }}>
+                          Volver al inicio de sesión
+                        </Link>
                       </Typography>
                     </Box>
                   </Box>
-                </form>
+                </Box>
               </CardContent>
             </Card>
           </Grid>
 
           {/* Right side - Logo and welcome message */}
-          <Grid item xs={12} md={6} sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100%',
-            padding: { xs: 2, md: 4 },
-            backgroundColor: '#f5f7fa'
-          }}>
-            <Box sx={{ mb: 4, textAlign: 'center', position: 'relative', zIndex: 2 }}>
-              <img
+          <Grid
+            item
+            xs={12}
+            md={6}
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: { xs: 'auto', md: '100vh' },
+              p: { xs: 2, sm: 3, md: 4 },
+              backgroundColor: '#f5f7fa',
+            }}
+          >
+            <Box sx={{ mb: { xs: 3, md: 4 }, textAlign: 'center', position: 'relative', zIndex: 2 }}>
+              <Box
+                component="img"
                 src={TeAcuerdasLogo}
                 alt="Te Acuerdas Logo"
-                style={{
-                  width: '150px',
-                  height: '150px',
+                sx={{
+                  width: { xs: 100, sm: 130, md: 160 },
+                  height: { xs: 100, sm: 130, md: 160 },
                   objectFit: 'contain',
                   borderRadius: '50%',
-                  backgroundColor: 'white',
-                  padding: '15px'
+                  bgcolor: 'common.white',
+                  p: { xs: 1.5, sm: 2.5 },
                 }}
               />
             </Box>
             <Box sx={{ textAlign: 'center', position: 'relative', zIndex: 2 }}>
-              <Typography variant="h3" component="h1" sx={{
-                fontWeight: 700,
-                color: '#0455a2',
-                mb: 2,
-                textShadow: '1px 1px 3px rgba(0,0,0,0.7)'
-              }}>
+              <Typography
+                variant="h3"
+                component="h1"
+                sx={{
+                  fontWeight: 700,
+                  color: '#0455a2',
+                  mb: { xs: 1.5, md: 2 },
+                  textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
+                  fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem', lg: '2.5rem' },
+                }}
+              >
                 Recupera tu Acceso
               </Typography>
-              <Typography variant="h6" sx={{
-                color: '#0455a2',
-                mb: 4,
-                textShadow: '1px 1px 3px rgba(0,0,0,0.3)',
-                fontWeight: 500
-              }}>
+              <Typography
+                variant="h6"
+                sx={{
+                  color: '#0455a2',
+                  mb: { xs: 3, md: 4 },
+                  textShadow: '1px 1px 3px rgba(0,0,0,0.3)',
+                  fontWeight: 500,
+                  fontSize: { xs: '1rem', md: '1.125rem' },
+                }}
+              >
                 Te enviaremos las instrucciones a tu correo
               </Typography>
             </Box>

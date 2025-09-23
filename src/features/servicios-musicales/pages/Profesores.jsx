@@ -269,7 +269,7 @@ import { useState, useEffect } from 'react';
         }
 
         // Validar restricciones específicas del esquema
-        const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.\'-]+$/;
+        const nombreRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s.'-]+$/;
         if (!nombreRegex.test(formData.nombres)) {
           setAlert({
             open: true,
@@ -379,54 +379,19 @@ import { useState, useEffect } from 'react';
            message: 'Profesor actualizado correctamente'
          });
        } else {
-         // Primero crear el usuario
-         const userData = {
-           nombre: professorData.nombres,
-           apellido: professorData.apellidos,
-           tipo_de_documento: professorData.tipoDocumento,
-           documento: professorData.identificacion,
-           correo: professorData.correo,
-           contrasena: formData.password || professorData.identificacion, // Usar la identificación como contraseña por defecto si no se proporciona
-           estado: true
-         };
+         // Crear profesor + usuario + asignación de rol en backend
+         const professorResponse = await axios.post(
+           'http://localhost:3000/api/profesores',
+           professorData,
+           config
+         );
+
+         console.log('Profesor creado correctamente:', professorResponse.data);
          
-         try {
-            // Crear el profesor directamente sin crear usuario
-            console.log('Creando profesor con datos:', professorData);
-            const professorResponse = await axios.post(
-              'http://localhost:3000/api/profesores',
-              professorData,
-              config
-            );
-            console.log('Profesor creado correctamente:', professorResponse.data);
-            
-            setAlert({
-              open: true,
-              message: 'Profesor creado correctamente'
-            });
-          } catch (error) {
-            console.error('Error al crear usuario o asignar rol:', error);
-            
-            // Intentar crear solo el profesor como fallback
-            try {
-              const professorResponse = await axios.post(
-                'http://localhost:3000/api/profesores',
-                professorData,
-                config
-              );
-              
-              setAlert({
-                open: true,
-                message: 'Profesor creado correctamente, pero hubo un error al crear el usuario asociado'
-              });
-            } catch (professorError) {
-              console.error('Error al crear profesor:', professorError);
-              setAlert({
-                open: true,
-                message: `Error: ${professorError.response?.data?.message || professorError.message || 'Error al crear profesor'}`
-              });
-            }
-          }
+         setAlert({
+           open: true,
+           message: 'Profesor creado correctamente'
+         });
        }
 
        // Recargar lista y cerrar modal
