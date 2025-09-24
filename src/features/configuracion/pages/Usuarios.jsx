@@ -384,7 +384,7 @@ const normalizarRol = (rolId) => {
           severity: 'success'
         });
       } else {
-        await axios.post("http://localhost:3000/api/usuarios", datos);
+        await axios.post("https://apiwebmga.onrender.com/api/usuarios", datos);
         setAlert({
           open: true,
           message: 'Usuario creado correctamente',
@@ -431,7 +431,7 @@ const normalizarRol = (rolId) => {
 
   const fetchCursos = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/cursos');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/cursos');
       if (!Array.isArray(response.data)) {
         setCursosOptions(defaultCursos);
         return;
@@ -472,7 +472,7 @@ const normalizarRol = (rolId) => {
           // Cargar información adicional del profesor si existe
           const cargarDatosProfesor = async () => {
             try {
-              const response = await axios.get(`http://localhost:3000/api/profesores?usuarioId=${selectedUsuario._id}`);
+              const response = await axios.get(`https://apiwebmga.onrender.com/api/profesores?usuarioId=${selectedUsuario._id}`);
               if (response.data && response.data.length > 0) {
                 const profesorData = response.data[0];
                 // Actualizar el usuario seleccionado con los datos del profesor

@@ -46,7 +46,7 @@ const TabPanel = (props) => {
   );
 };
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://apiwebmga.onrender.com/api';
 
 const CursosMatriculas = () => {
   const [tabValue, setTabValue] = useState(0);

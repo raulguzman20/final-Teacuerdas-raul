@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
           console.error('Error al obtener permisos desde API:', error);
           // Mantener permisos por fallback (definido arriba) para evitar bloquear navegación
         }
-        
+
         // 4) Navegación: determina ruta por defecto según permisos/rol
         const getDefaultRoute = (permissions, role) => {
           if (role === 'cliente') return '/venta-servicios/beneficiarios';
@@ -116,7 +116,10 @@ export function AuthProvider({ children }) {
           return '/servicios-musicales/programacion-clases';
         };
         const currentPermissions = JSON.parse(localStorage.getItem('user'))?.permissions || [];
-        navigate(getDefaultRoute(currentPermissions, rolNombre));
+        const defaultRoute = getDefaultRoute(currentPermissions, rolNombre);
+        // Retardo breve para permitir que el loader sea visible antes de navegar
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        navigate(defaultRoute);
       } else {
         // Credenciales inválidas o respuesta sin success
         alert(data.message || 'Credenciales incorrectas');

@@ -8,7 +8,7 @@ import { Snackbar, Alert } from '@mui/material';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 
 // Configuración de la API - Corrección del error de process.env
-const API_BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 'http://localhost:3000';
+const API_BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 'https://apiwebmga.onrender.com';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -277,7 +277,7 @@ const Beneficiarios = () => {
     if (confirmDelete) {
       try {
         setLoading(true);
-        await axios.delete(`http://localhost:3000/api/beneficiarios/${beneficiario.id}`);
+        await axios.delete(`https://apiwebmga.onrender.com/api/beneficiarios/${beneficiario.id}`);
         await fetchBeneficiarios(); // Recargar la lista de beneficiarios
 
         // Mostrar mensaje de éxito

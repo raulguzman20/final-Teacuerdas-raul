@@ -95,7 +95,7 @@ import { useState, useEffect } from 'react';
   const fetchEspecialidades = async () => {
     try {
       console.log('Fetching especialidades from cursos...');
-      const response = await axios.get('http://localhost:3000/api/cursos');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/cursos');
       console.log('Cursos fetched:', response.data);
       
       // Validar que response.data sea un array
@@ -129,7 +129,7 @@ import { useState, useEffect } from 'react';
   const fetchProfessors = async () => {
     try {
       console.log('Fetching professors...');
-      const response = await axios.get('http://localhost:3000/api/profesores');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/profesores');
       console.log('Professors fetched:', response.data);
       console.log('Number of professors:', response.data.length);
       setProfessors(response.data);
@@ -215,7 +215,7 @@ import { useState, useEffect } from 'react';
       if (!professorToDelete) return;
 
       try {
-        await axios.delete(`http://localhost:3000/api/profesores/${professorToDelete._id}`);
+        await axios.delete(`https://apiwebmga.onrender.com/api/profesores/${professorToDelete._id}`);
         await fetchProfessors();
         setAlert({
           open: true,
@@ -370,7 +370,7 @@ import { useState, useEffect } from 'react';
 
                if (isEditing) {
          await axios.put(
-           `http://localhost:3000/api/profesores/${selectedProfessor._id}`,
+           `https://apiwebmga.onrender.com/api/profesores/${selectedProfessor._id}`,
            professorData,
            config
          );
@@ -381,7 +381,7 @@ import { useState, useEffect } from 'react';
        } else {
          // Crear profesor + usuario + asignación de rol en backend
          const professorResponse = await axios.post(
-           'http://localhost:3000/api/profesores',
+           'https://apiwebmga.onrender.com/api/profesores',
            professorData,
            config
          );
@@ -441,7 +441,7 @@ import { useState, useEffect } from 'react';
         const nuevoEstado = professor.estado === 'Activo' ? 'Inactivo' : 'Activo';
         
         // Actualizar en la API usando el endpoint PATCH para cambiar estado
-        await axios.patch(`http://localhost:3000/api/profesores/${professorId}/estado`, { 
+        await axios.patch(`https://apiwebmga.onrender.com/api/profesores/${professorId}/estado`, { 
           estado: nuevoEstado 
         });
 

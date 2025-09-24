@@ -168,7 +168,7 @@ const Asistencia = () => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const asistenciasResponse = await axios.get("http://localhost:3000/api/asistencias")
+        const asistenciasResponse = await axios.get("https://apiwebmga.onrender.com/api/asistencias")
         setAsistencias(asistenciasResponse.data)
       } catch (error) {
       console.error("Error al cargar los datos:", error)
@@ -199,7 +199,7 @@ const Asistencia = () => {
       console.log('Día en español:', diaActual)
       
       // Cargar todas las clases igual que en ProgramacionClases.jsx
-      const response = await axios.get('http://localhost:3000/api/programacion_de_clases')
+      const response = await axios.get('https://apiwebmga.onrender.com/api/programacion_de_clases')
       console.log('Todas las clases de la API:', response.data)
       
       // Procesar clases igual que en ProgramacionClases.jsx
@@ -754,7 +754,7 @@ const Asistencia = () => {
           }
 
           const response = await axios.put(
-            `http://localhost:3000/api/asistencias/programacion/${claseId}/bulk`,
+            `https://apiwebmga.onrender.com/api/asistencias/programacion/${claseId}/bulk`,
             { asistencias }
           );
 

@@ -24,7 +24,7 @@ export const VentaCursosProvider = ({ children }) => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get('http://localhost:3000/api/ventas');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/ventas');
       console.log('Respuesta de la API:', response.data);
       // Verificar que response.data sea un array
       const ventasData = Array.isArray(response.data) ? response.data : response.data.ventas || [];
@@ -55,7 +55,7 @@ export const VentaCursosProvider = ({ children }) => {
           if (!isValidObjectId) return venta;
 
           // Intentar cargar el cliente; si falla (404, etc.), continuar sin bloquear toda la página
-          const clienteResponse = await axios.get(`http://localhost:3000/api/beneficiarios/${clienteId}`);
+          const clienteResponse = await axios.get(`https://apiwebmga.onrender.com/api/beneficiarios/${clienteId}`);
           console.log('Respuesta del cliente:', clienteResponse.data);
           return { ...venta, cliente: clienteResponse.data };
         } catch (cliErr) {
@@ -106,7 +106,7 @@ export const VentaCursosProvider = ({ children }) => {
   const anularVenta = async (ventaId, motivoAnulacion) => {
     try {
       setLoading(true);
-      await axios.patch(`http://localhost:3000/api/ventas/${ventaId}/anular`, {
+      await axios.patch(`https://apiwebmga.onrender.com/api/ventas/${ventaId}/anular`, {
         motivoAnulacion
       });
       await fetchVentas();
@@ -122,7 +122,7 @@ export const VentaCursosProvider = ({ children }) => {
   const deleteVenta = async (ventaId) => {
     try {
       setLoading(true);
-      await axios.delete(`http://localhost:3000/api/ventas/${ventaId}`);
+      await axios.delete(`https://apiwebmga.onrender.com/api/ventas/${ventaId}`);
       await fetchVentas();
       return true;
     } catch (err) {

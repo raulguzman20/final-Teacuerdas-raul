@@ -148,7 +148,7 @@ export const ClassSchedulerModal = ({ isOpen, onClose, onSubmit, editMode = fals
       // Cargar aulas si no se pasan como prop
       const fetchAulas = async () => {
         try {
-          const response = await axios.get("http://localhost:3000/api/aulas")
+          const response = await axios.get("https://apiwebmga.onrender.com/api/aulas")
           // ✅ ACTUALIZADO: Incluir aulas activas y disponibles
           setAulas(response.data.filter((a) => a.estado === "Activo" || a.estado === "Disponible"))
         } catch (error) {
@@ -163,7 +163,7 @@ export const ClassSchedulerModal = ({ isOpen, onClose, onSubmit, editMode = fals
   useEffect(() => {
     const fetchProfesores = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/programacion_de_profesores")
+        const response = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_profesores")
         const profesoresActivos = response.data
           .filter((prog) => prog.estado === "activo" && prog.horariosPorDia && prog.horariosPorDia.length > 0)
           .map((prog) => ({
@@ -194,7 +194,7 @@ export const ClassSchedulerModal = ({ isOpen, onClose, onSubmit, editMode = fals
     const fetchBeneficiarios = async () => {
       try {
         console.log("🔄 Iniciando carga de beneficiarios...");
-        const response = await axios.get("http://localhost:3000/api/ventas?populate=true");
+        const response = await axios.get("https://apiwebmga.onrender.com/api/ventas?populate=true");
         console.log("📦 Datos recibidos:", response.data);
         
         const beneficiariosActivos = response.data
@@ -242,7 +242,7 @@ export const ClassSchedulerModal = ({ isOpen, onClose, onSubmit, editMode = fals
 
       try {
         console.log("📚 Cargando clases existentes...")
-        const response = await axios.get("http://localhost:3000/api/programacion_de_clases")
+        const response = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_clases")
         console.log("✅ Clases existentes cargadas:", response.data.length)
         setClasesExistentes(response.data)
       } catch (error) {
@@ -433,12 +433,12 @@ export const ClassSchedulerModal = ({ isOpen, onClose, onSubmit, editMode = fals
       console.log("🔄 Reprogramando clase:", claseId)
 
       // Cambiar el estado de la clase a "reprogramada" en lugar de eliminar
-      await axios.patch(`http://localhost:3000/api/programacion_de_clases/${claseId}/estado`, {
+      await axios.patch(`https://apiwebmga.onrender.com/api/programacion_de_clases/${claseId}/estado`, {
         estado: "reprogramada",
       })
 
       // Recargar las clases existentes para actualizar la vista
-      const response = await axios.get("http://localhost:3000/api/programacion_de_clases")
+      const response = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_clases")
       setClasesExistentes(response.data)
 
       // Automáticamente seleccionar el slot liberado

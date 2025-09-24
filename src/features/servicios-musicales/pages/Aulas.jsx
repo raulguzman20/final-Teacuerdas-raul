@@ -90,7 +90,7 @@ const Aulas = () => {
 
   const fetchAulas = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/aulas');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/aulas');
       setAulas(response.data);
     } catch (error) {
       console.error('Error fetching aulas:', error);
@@ -122,7 +122,7 @@ const Aulas = () => {
 
 
       // Luego actualizar en la API
-      await axios.put(`http://localhost:3000/api/aulas/${aulaId}`, {
+      await axios.put(`https://apiwebmga.onrender.com/api/aulas/${aulaId}`, {
         ...aula,
         estado: nuevoEstado
       });
@@ -158,7 +158,7 @@ const Aulas = () => {
 
 
     try {
-      const response = await axios.delete(`http://localhost:3000/api/aulas/${aulaToDelete._id}`);
+      const response = await axios.delete(`https://apiwebmga.onrender.com/api/aulas/${aulaToDelete._id}`);
       await fetchAulas(); // Recargar los datos después de eliminar
       setAlert({
         open: true,
@@ -207,13 +207,13 @@ const Aulas = () => {
 
 
       if (isEditing && selectedAula?._id) {
-        await axios.put(`http://localhost:3000/api/aulas/${selectedAula._id}`, dataToSend);
+        await axios.put(`https://apiwebmga.onrender.com/api/aulas/${selectedAula._id}`, dataToSend);
         setAlert({
           open: true,
           message: 'Aula editada correctamente'
         });
       } else {
-        await axios.post('http://localhost:3000/api/aulas', dataToSend);
+        await axios.post('https://apiwebmga.onrender.com/api/aulas', dataToSend);
         setAlert({
           open: true,
           message: 'Aula creada correctamente'

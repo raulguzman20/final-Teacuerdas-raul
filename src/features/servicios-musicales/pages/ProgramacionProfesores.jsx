@@ -83,7 +83,7 @@ const ProgramacionProfesores = () => {
   useEffect(() => {
     const fetchProfesores = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/profesores")
+        const response = await axios.get("https://apiwebmga.onrender.com/api/profesores")
         const mapped = response.data.map((p) => ({
           id: String(p._id),
           nombre: `${p.nombres} ${p.apellidos}`,
@@ -110,15 +110,15 @@ const ProgramacionProfesores = () => {
     const fetchProgramaciones = async () => {
       try {
         setLoading(true);
-        let url = "http://localhost:3000/api/programacion_de_profesores";
+        let url = "https://apiwebmga.onrender.com/api/programacion_de_profesores";
         
         // Si el usuario es profesor, obtener primero sus datos
         if (isProfesor) {
-          const profesorResponse = await axios.get(`http://localhost:3000/api/profesores?usuarioId=${user.id}`);
+          const profesorResponse = await axios.get(`https://apiwebmga.onrender.com/api/profesores?usuarioId=${user.id}`);
           if (profesorResponse.data && profesorResponse.data.length > 0) {
             const profesorId = profesorResponse.data[0]._id;
             // Modificar la URL para obtener solo las programaciones del profesor
-            url = `http://localhost:3000/api/programacion_de_profesores/profesor/${profesorId}`;
+            url = `https://apiwebmga.onrender.com/api/programacion_de_profesores/profesor/${profesorId}`;
           }
         }
 
@@ -434,7 +434,7 @@ const convertTo12Hour = (time24) => {
     if (!eventToDelete) return
 
     try {
-      await axios.delete(`http://localhost:3000/api/programacion_de_profesores/${eventToDelete.id}`)
+      await axios.delete(`https://apiwebmga.onrender.com/api/programacion_de_profesores/${eventToDelete.id}`)
       setEvents((prev) => prev.filter((e) => e._id !== eventToDelete.id))
       setAlert({
         open: true,
@@ -465,7 +465,7 @@ const convertTo12Hour = (time24) => {
       const eventToUpdate = events.find((e) => e._id === eventToCancel.id)
       if (!eventToUpdate) return
 
-      await axios.put(`http://localhost:3000/api/programacion_de_profesores/${eventToCancel.id}`, {
+      await axios.put(`https://apiwebmga.onrender.com/api/programacion_de_profesores/${eventToCancel.id}`, {
         ...eventToUpdate,
         estado: "cancelado",
         motivo: cancelMotivo,
@@ -510,7 +510,7 @@ const convertTo12Hour = (time24) => {
 
         console.log("Enviando datos de actualización:", updateData)
 
-        await axios.put(`http://localhost:3000/api/programacion_de_profesores/${editScheduleData.eventId}`, updateData)
+        await axios.put(`https://apiwebmga.onrender.com/api/programacion_de_profesores/${editScheduleData.eventId}`, updateData)
 
         setEvents((prev) =>
           prev.map((e) =>
@@ -543,7 +543,7 @@ const convertTo12Hour = (time24) => {
         console.log("Objeto completo:", newData)
         console.log("JSON stringificado:", JSON.stringify(newData, null, 2))
 
-        const response = await axios.post("http://localhost:3000/api/programacion_de_profesores", newData)
+        const response = await axios.post("https://apiwebmga.onrender.com/api/programacion_de_profesores", newData)
 
         console.log("Respuesta del servidor:", response.data)
 
@@ -594,7 +594,7 @@ const convertTo12Hour = (time24) => {
 
       const nuevoEstado = programacion.estado === "activo" ? "cancelado" : "activo"
 
-      await axios.patch(`http://localhost:3000/api/programacion_de_profesores/${programacionId}/estado`, {
+      await axios.patch(`https://apiwebmga.onrender.com/api/programacion_de_profesores/${programacionId}/estado`, {
         estado: nuevoEstado,
       })
 

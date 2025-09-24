@@ -212,7 +212,7 @@ const ProgramacionClases = () => {
         let clasesResponse;
         if (user?.role === 'profesor') {
           // Si es profesor, filtrar solo sus clases
-          clasesResponse = await axios.get("http://localhost:3000/api/programacion_de_clases");
+          clasesResponse = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_clases");
           // Filtrar clases del profesor logueado por correo
           const todasLasClases = clasesResponse.data;
           const clasesFiltradas = todasLasClases.filter(clase => {
@@ -225,22 +225,22 @@ const ProgramacionClases = () => {
           setClases(clasesFiltradas);
         } else {
           // Para otros roles, cargar todas las clases
-          clasesResponse = await axios.get("http://localhost:3000/api/programacion_de_clases");
+          clasesResponse = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_clases");
           console.log("✅ Clases cargadas:", clasesResponse.data);
           setClases(clasesResponse.data);
         }
 
         // Cargar profesores
-        const profesoresResponse = await axios.get("http://localhost:3000/api/profesores");
+        const profesoresResponse = await axios.get("https://apiwebmga.onrender.com/api/profesores");
         setProfesores(profesoresResponse.data);
 
         // ✅ NUEVO: Cargar aulas
-        const aulasResponse = await axios.get("http://localhost:3000/api/aulas");
+        const aulasResponse = await axios.get("https://apiwebmga.onrender.com/api/aulas");
         const aulasActivas = aulasResponse.data.filter((a) => a.estado === "Activo" || a.estado === "Disponible");
         setAulas(aulasActivas);
 
         // Cargar beneficiarios con populate=true para obtener datos completos
-        const beneficiariosResponse = await axios.get("http://localhost:3000/api/ventas?populate=true");
+        const beneficiariosResponse = await axios.get("https://apiwebmga.onrender.com/api/ventas?populate=true");
         console.log("📦 Ventas recibidas:", beneficiariosResponse.data);
         
         // No filtrar por estado, solo por tipo curso
@@ -447,7 +447,7 @@ const ProgramacionClases = () => {
     }
 
     try {
-      await axios.delete(`http://localhost:3000/api/programacion_de_clases/${claseToDelete.id}`)
+      await axios.delete(`https://apiwebmga.onrender.com/api/programacion_de_clases/${claseToDelete.id}`)
       await reloadClases()
       setSnackbar({
         open: true,
@@ -472,7 +472,7 @@ const ProgramacionClases = () => {
     if (!selectedClase || !cancelMotivo.trim()) return
 
     try {
-      await axios.patch(`http://localhost:3000/api/programacion_de_clases/${selectedClase.id}/estado`, {
+      await axios.patch(`https://apiwebmga.onrender.com/api/programacion_de_clases/${selectedClase.id}/estado`, {
         estado: "cancelada",
         motivo: cancelMotivo.trim(),
       })
@@ -509,7 +509,7 @@ const ProgramacionClases = () => {
         observaciones: editingClase.observaciones,
       }
 
-      await axios.put(`http://localhost:3000/api/programacion_de_clases/${editingClase.id}`, updateData)
+      await axios.put(`https://apiwebmga.onrender.com/api/programacion_de_clases/${editingClase.id}`, updateData)
       await reloadClases()
       setSnackbar({
         open: true,
@@ -550,7 +550,7 @@ const ProgramacionClases = () => {
         throw new Error("El aula es requerida")
       }
 
-      const response = await axios.post("http://localhost:3000/api/programacion_de_clases", nuevaClase)
+      const response = await axios.post("https://apiwebmga.onrender.com/api/programacion_de_clases", nuevaClase)
       console.log("✅ Respuesta del servidor:", response.data)
 
       // ✅ ACTUALIZADO: Los registros de asistencia se crearán solo al registrar la asistencia
@@ -580,7 +580,7 @@ const ProgramacionClases = () => {
 
   const reloadClases = async () => {
     try {
-      const clasesResponse = await axios.get("http://localhost:3000/api/programacion_de_clases")
+      const clasesResponse = await axios.get("https://apiwebmga.onrender.com/api/programacion_de_clases")
       setClases(clasesResponse.data)
     } catch (error) {
       console.error("Error al recargar clases:", error)
@@ -590,7 +590,7 @@ const ProgramacionClases = () => {
   // ✅ NUEVA FUNCIÓN: Recargar aulas
   const reloadAulas = async () => {
     try {
-      const aulasResponse = await axios.get("http://localhost:3000/api/aulas")
+      const aulasResponse = await axios.get("https://apiwebmga.onrender.com/api/aulas")
       // Filtrar aulas activas y disponibles
       const aulasActivas = aulasResponse.data.filter((a) => a.estado === "Activo" || a.estado === "Disponible")
       setAulas(aulasActivas) // This state is not defined in the original file, so this line is commented out.
@@ -602,7 +602,7 @@ const ProgramacionClases = () => {
   // Nuevo handler para guardar beneficiarios en edición
   const handleEditSubmit = async (nuevaClase) => {
     try {
-      await axios.put(`http://localhost:3000/api/programacion_de_clases/${editingClase.id}`, {
+      await axios.put(`https://apiwebmga.onrender.com/api/programacion_de_clases/${editingClase.id}`, {
         beneficiarios: nuevaClase.beneficiarios, // array de _id de venta
         // Puedes agregar otros campos si quieres permitir editarlos
       });

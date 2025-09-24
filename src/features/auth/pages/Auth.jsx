@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   Paper, 
@@ -8,7 +8,8 @@ import {
   Container,
   Checkbox,
   FormControlLabel,
-  Link
+  Link,
+  CircularProgress
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 
@@ -16,11 +17,31 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(true);
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    return () => { isMountedRef.current = false; };
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login({ email, password });
+    const MIN_SPINNER_MS = 3000; // asegura que el loader sea visible al menos este tiempo
+    const start = Date.now();
+    try {
+      setLoading(true);
+      await login({ email, password });
+    } finally {
+      const elapsed = Date.now() - start;
+      const remaining = Math.max(0, MIN_SPINNER_MS - elapsed);
+      if (remaining) {
+        await new Promise((resolve) => setTimeout(resolve, remaining));
+      }
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -89,15 +110,21 @@ const Auth = () => {
                 type="submit" 
                 variant="contained" 
                 fullWidth
+                disabled={loading}
                 sx={{ 
                   mt: 2,
-                  backgroundColor: '#0455a2',
+                  backgroundColor: loading ? '#7c9427' : '#0455a2',
+                  color: '#fff',
                   '&:hover': {
                     backgroundColor: '#7c9427'
+                  },
+                  '&.Mui-disabled': {
+                    backgroundColor: loading ? '#7c9427' : '#0455a2', // mantener el color cuando está deshabilitado por loading
+                    color: '#fff'
                   }
                 }}
               >
-                Iniciar Sesión
+                {loading ? <CircularProgress size={24} color="inherit" /> : 'Iniciar Sesión'}
               </Button>
             </Box>
           </form>

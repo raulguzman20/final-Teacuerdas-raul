@@ -13,6 +13,7 @@ import {
   Grid,
   Card,
   CardContent,
+  CircularProgress
 } from '@mui/material';
 
 // Asset imports
@@ -23,6 +24,7 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -36,6 +38,7 @@ const ForgotPassword = () => {
     }
     
     try {
+      setLoading(true);
       const response = await authService.forgotPassword(email);
       
       if (response.success) {
@@ -48,6 +51,8 @@ const ForgotPassword = () => {
       }
     } catch (err) {
       setError('Ocurrió un error al procesar tu solicitud. Por favor, intenta nuevamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -129,6 +134,7 @@ const ForgotPassword = () => {
                       variant="outlined"
                       placeholder="Ingrese su email"
                       size="small"
+                      disabled={loading}
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: 1
@@ -141,6 +147,7 @@ const ForgotPassword = () => {
                       variant="contained"
                       fullWidth
                       size="medium"
+                      disabled={loading}
                       sx={{
                         mt: 2,
                         py: 1,
@@ -148,13 +155,23 @@ const ForgotPassword = () => {
                         '&:hover': {
                           backgroundColor: '#6c8221'
                         },
+                        '&.Mui-disabled': {
+                          backgroundColor: '#0455a2',
+                          color: '#ffffff',
+                          opacity: 0.9
+                        },
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         fontSize: '0.875rem',
-                        borderRadius: 1
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1
                       }}
                     >
-                      Enviar Enlace de Recuperación
+                      {loading && <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />}
+                      {loading ? 'Enviando…' : 'Enviar Enlace de Recuperación'}
                     </Button>
 
                     <Box sx={{ mt: 2, textAlign: 'center' }}>

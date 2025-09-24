@@ -832,7 +832,7 @@ const Pagos = () => {
       console.log('=== FETCHING PAGOS ===');
      
       // Si el usuario es cliente, enviar su documento para filtrar en el backend
-      let url = 'http://localhost:3000/api/pagos';
+      let url = 'https://apiwebmga.onrender.com/api/pagos';
       if (isCliente && user?.documento) {
         url += `?documento=${user.documento}`;
       }
@@ -934,7 +934,7 @@ const Pagos = () => {
 
 
       if (isEditing) {
-        const url = `http://localhost:3000/api/pagos/${selectedPayment._id}`;
+        const url = `https://apiwebmga.onrender.com/api/pagos/${selectedPayment._id}`;
         console.log(`Making PUT request to: ${url}`);
         await axios.put(url, pagoData, config);
         setAlert({
@@ -942,7 +942,7 @@ const Pagos = () => {
           message: 'Pago actualizado correctamente'
         });
       } else {
-        const url = 'http://localhost:3000/api/pagos';
+        const url = 'https://apiwebmga.onrender.com/api/pagos';
         console.log(`Making POST request to: ${url}`);
         await axios.post(url, pagoData, config);
         setAlert({
@@ -1006,7 +1006,7 @@ const Pagos = () => {
       console.log('Current status:', payment.estado);
       console.log('New status:', nuevoEstado);
      
-      const url = `http://localhost:3000/api/pagos/${paymentId}`;
+      const url = `https://apiwebmga.onrender.com/api/pagos/${paymentId}`;
       const data = { estado: nuevoEstado };
      
       await axios.put(url, data);

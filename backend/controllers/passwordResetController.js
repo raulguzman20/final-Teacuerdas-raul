@@ -50,7 +50,8 @@ const forgotPassword = async (req, res) => {
     await passwordReset.save();
 
     // 4. Enviar un correo con un link que incluya el token
-    const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+    const frontendUrl = process.env.FRONTEND_URL || 'https://mgasoftwareapp.web.app';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}`;
     
     const mailOptions = {
       from: 'raulguz327@gmail.com',

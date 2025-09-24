@@ -12,7 +12,8 @@ import {
   IconButton,
   InputAdornment,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  CircularProgress
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from './features/auth/context/AuthContext';
@@ -25,13 +26,23 @@ const Home = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    login({ email, password });
+    setLoading(true);
+
+    try {
+      await login({ email, password });
+      // pequeño retardo para que el estado de carga sea perceptible
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (err) {
+      setError(err?.message || 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTogglePasswordVisibility = () => {
@@ -139,6 +150,7 @@ const Home = () => {
                               onClick={handleTogglePasswordVisibility}
                               edge="end"
                               size="small"
+                              disabled={loading}
                             >
                               {showPassword ? <VisibilityOff /> : <Visibility />}
                             </IconButton>
@@ -155,6 +167,7 @@ const Home = () => {
                             onChange={(e) => setKeepLoggedIn(e.target.checked)}
                             sx={{ '&.Mui-checked': { color: '#0455a2' } }}
                             size="small"
+                            disabled={loading}
                           />
                         }
                         label={<Typography variant="body2">Mantener sesión iniciada</Typography>}
@@ -169,6 +182,7 @@ const Home = () => {
                       variant="contained" 
                       fullWidth
                       size="medium"
+                      disabled={loading || !email || !password}
                       sx={{ 
                         mt: 2,
                         py: 1,
@@ -176,13 +190,23 @@ const Home = () => {
                         '&:hover': {
                           backgroundColor: '#6c8221'
                         },
+                        '&.Mui-disabled': {
+                          backgroundColor: '#0455a2',
+                          color: '#ffffff',
+                          opacity: 0.85
+                        },
                         fontWeight: 600,
                         textTransform: 'uppercase',
                         fontSize: '0.875rem',
-                        borderRadius: 1
+                        borderRadius: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1
                       }}
                     >
-                      INICIAR SESIÓN
+                      {loading && <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />}
+                      {loading ? 'Iniciando…' : 'INICIAR SESIÓN'}
                     </Button>
                   </Box>
                 </form>

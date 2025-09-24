@@ -9,7 +9,7 @@ import { Box, Chip, TextField } from "@mui/material"
 import { ConfirmationDialog } from "../../../shared/components/ConfirmationDialog"
 import { useAlertVentas } from "../context/AlertVentasContext"
 
-const API_BASE_URL = "http://localhost:3000/api"
+const API_BASE_URL = "https://apiwebmga.onrender.com/api"
 
 const VentaMatriculas = () => {
   const { showSuccess, showError } = useAlertVentas()

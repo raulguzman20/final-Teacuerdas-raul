@@ -24,7 +24,7 @@ const Roles = () => {
   // Función para obtener las relaciones rol-permiso-privilegio
   const fetchRolPermisoPrivilegio = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/rol_permiso_privilegio?populate=rolId,permisoId,privilegioId');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/rol_permiso_privilegio?populate=rolId,permisoId,privilegioId');
       console.log('Relaciones rol-permiso-privilegio cargadas:', response.data);
       setRolPermisoPrivilegio(response.data);
     } catch (error) {
@@ -193,7 +193,7 @@ const Roles = () => {
   // Función para obtener los roles
   const fetchRoles = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/roles?populate=permisos,privilegios');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/roles?populate=permisos,privilegios');
       console.log('Roles cargados:', response.data);
       setRoles(response.data.roles || response.data || []); // Manejar diferentes estructuras de respuesta
     } catch (error) {
@@ -208,7 +208,7 @@ const Roles = () => {
   // Función para obtener permisos (módulos)
   const fetchPermisos = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/permisos');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/permisos');
       console.log('Permisos (módulos) cargados:', response.data);
       setPermisos(response.data);
     } catch (error) {
@@ -219,7 +219,7 @@ const Roles = () => {
   // Función para obtener privilegios (acciones)
   const fetchPrivilegios = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/privilegios');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/privilegios');
       console.log('Privilegios (acciones) cargados:', response.data);
       
       // Verificar si existe el privilegio "Descargar"
@@ -271,7 +271,7 @@ const Roles = () => {
       };
 
       // Actualizar en la API
-      await axios.put(`http://localhost:3000/api/roles/${rolId}`, updateData);
+      await axios.put(`https://apiwebmga.onrender.com/api/roles/${rolId}`, updateData);
 
       setAlert({
         open: true,
@@ -406,7 +406,7 @@ const Roles = () => {
       if (isEditing && selectedRol?._id) {
         console.log('Actualizando rol existente...');
         response = await axios.put(
-          `http://localhost:3000/api/roles/${selectedRol._id}`, 
+          `https://apiwebmga.onrender.com/api/roles/${selectedRol._id}`, 
           dataToSend,
           config
         );
@@ -417,7 +417,7 @@ const Roles = () => {
       } else {
         console.log('Creando nuevo rol...');
         response = await axios.post(
-          'http://localhost:3000/api/roles', 
+          'https://apiwebmga.onrender.com/api/roles', 
           dataToSend,
           config
         );

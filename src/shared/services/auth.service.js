@@ -146,9 +146,11 @@ const authService = {
   // Recuperar contraseña
   forgotPassword: async (email) => {
     try {
-      const response = await axiosInstance.post("/password-reset/forgot-password", {
-        email: email,
-      })
+      const response = await axiosInstance.post(
+        "/password-reset/forgot-password",
+        { email: email },
+        { timeout: 60000 } // aumentar timeout para entornos con cold start
+      )
 
       return {
         success: true,
@@ -156,6 +158,13 @@ const authService = {
       }
     } catch (error) {
       console.error("Error en forgotPassword:", error)
+      // Manejo explícito de timeout
+      if (error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '')) {
+        return {
+          success: false,
+          message: 'El servidor tardó demasiado en responder. Intenta nuevamente en unos segundos.',
+        }
+      }
       return {
         success: false,
         message: error.response?.data?.error || "Error al recuperar contraseña",

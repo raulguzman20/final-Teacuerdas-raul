@@ -43,11 +43,11 @@ const Clientes = () => {
   const fetchClientes = async () => {
     try {
       // Obtener beneficiarios
-      const beneficiariosResponse = await axios.get('http://localhost:3000/api/beneficiarios');
+      const beneficiariosResponse = await axios.get('https://apiwebmga.onrender.com/api/beneficiarios');
       const beneficiarios = beneficiariosResponse.data;
 
       // Obtener usuarios_has_rol
-      const usuariosHasRolResponse = await axios.get('http://localhost:3000/api/usuarios_has_rol');
+      const usuariosHasRolResponse = await axios.get('https://apiwebmga.onrender.com/api/usuarios_has_rol');
       const usuariosHasRol = usuariosHasRolResponse.data;
 
       // Filtrar beneficiarios que son clientes (clienteId === _id O clienteId === 'cliente')
@@ -191,7 +191,7 @@ const Clientes = () => {
       // -------------------
       if (isEditing) {
         try {
-          await axios.put(`http://localhost:3000/api/beneficiarios/${selectedCliente.id}`, {
+          await axios.put(`https://apiwebmga.onrender.com/api/beneficiarios/${selectedCliente.id}`, {
             nombre: formDataSinConfirmacion.nombre,
             apellido: formDataSinConfirmacion.apellido,
             tipo_de_documento: formDataSinConfirmacion.tipo_de_documento,
@@ -203,13 +203,13 @@ const Clientes = () => {
             esBeneficiario: formDataSinConfirmacion.esBeneficiario || false
           });
 
-          const beneficiarioResponse = await axios.get(`http://localhost:3000/api/beneficiarios/${selectedCliente.id}`);
-          const usuarioHasRolResponse = await axios.get(`http://localhost:3000/api/usuarios_has_rol/${beneficiarioResponse.data.usuario_has_rolId}`);
+          const beneficiarioResponse = await axios.get(`https://apiwebmga.onrender.com/api/beneficiarios/${selectedCliente.id}`);
+          const usuarioHasRolResponse = await axios.get(`https://apiwebmga.onrender.com/api/usuarios_has_rol/${beneficiarioResponse.data.usuario_has_rolId}`);
           const usuarioId = typeof usuarioHasRolResponse.data.usuarioId === 'string'
             ? usuarioHasRolResponse.data.usuarioId
             : usuarioHasRolResponse.data.usuarioId?._id;
 
-          const usuarioResponse = await axios.get(`http://localhost:3000/api/usuarios/${usuarioId}`);
+          const usuarioResponse = await axios.get(`https://apiwebmga.onrender.com/api/usuarios/${usuarioId}`);
           const usuarioActual = usuarioResponse.data.usuario || usuarioResponse.data;
 
           const usuarioUpdateData = {
@@ -225,7 +225,7 @@ const Clientes = () => {
           if (usuarioActual.rol) usuarioUpdateData.rol = usuarioActual.rol;
           if (formDataSinConfirmacion.contrasena) usuarioUpdateData.contrasena = formDataSinConfirmacion.contrasena;
 
-          await axios.put(`http://localhost:3000/api/usuarios/${usuarioId}`, usuarioUpdateData);
+          await axios.put(`https://apiwebmga.onrender.com/api/usuarios/${usuarioId}`, usuarioUpdateData);
         } catch (error) {
           console.error('Error al actualizar el cliente:', error);
           throw error;
@@ -260,12 +260,12 @@ const Clientes = () => {
         // 🔍 LOG para depurar
         console.log('Payload enviado a /usuarios:', usuarioData);
 
-        const usuarioResponse = await axios.post('http://localhost:3000/api/usuarios', usuarioData);
+        const usuarioResponse = await axios.post('https://apiwebmga.onrender.com/api/usuarios', usuarioData);
         const usuarioId = usuarioResponse.data._id || usuarioResponse.data?.usuario?._id;
 
         // Enviar correo de bienvenida (no interrumpe flujo si falla)
         try {
-          await axios.post('http://localhost:3000/api/email/welcome', {
+          await axios.post('https://apiwebmga.onrender.com/api/email/welcome', {
             email: usuarioData.correo,
             nombre: usuarioData.nombre,
             apellido: usuarioData.apellido,
@@ -277,7 +277,7 @@ const Clientes = () => {
         }
 
         // Obtener roles disponibles y asignar según selección de Beneficiario
-      const rolesResponse = await axios.get('http://localhost:3000/api/roles');
+      const rolesResponse = await axios.get('https://apiwebmga.onrender.com/api/roles');
       const roles = rolesResponse.data.roles || rolesResponse.data || [];
 
       // Buscar roles "Cliente" y "Beneficiario"
@@ -299,7 +299,7 @@ const Clientes = () => {
       }
 
       // Crear/actualizar relación usuario-rol con todos los roles requeridos
-      const usuarioHasRolResponse = await axios.post('http://localhost:3000/api/usuarios_has_rol', {
+      const usuarioHasRolResponse = await axios.post('https://apiwebmga.onrender.com/api/usuarios_has_rol', {
         usuarioId,
         rolId: rolIds
       });
@@ -324,11 +324,11 @@ const Clientes = () => {
         // 🔍 LOG para depurar
         console.log('Payload enviado a /beneficiarios:', beneficiarioData);
 
-        const beneficiarioResponse = await axios.post('http://localhost:3000/api/beneficiarios', beneficiarioData);
+        const beneficiarioResponse = await axios.post('https://apiwebmga.onrender.com/api/beneficiarios', beneficiarioData);
 
         // Si es beneficiario también, actualizar su clienteId
         if (formDataSinConfirmacion.esBeneficiario) {
-          await axios.put(`http://localhost:3000/api/beneficiarios/${beneficiarioResponse.data._id}`, {
+          await axios.put(`https://apiwebmga.onrender.com/api/beneficiarios/${beneficiarioResponse.data._id}`, {
             clienteId: beneficiarioResponse.data._id
           });
         }
@@ -384,7 +384,7 @@ const Clientes = () => {
   const confirmDeleteCliente = async (cliente) => {
     setAlertDialog(prev => ({ ...prev, open: false }));
     try {
-      await axios.delete(`http://localhost:3000/api/beneficiarios/${cliente.id}`);
+      await axios.delete(`https://apiwebmga.onrender.com/api/beneficiarios/${cliente.id}`);
       fetchClientes();
       // Notificación de éxito
       setSnackbar({
@@ -449,7 +449,7 @@ const Clientes = () => {
 
       const updatedStatus = !cliente.estado;
 
-      await axios.put(`http://localhost:3000/api/beneficiarios/${clienteId}`, {
+      await axios.put(`https://apiwebmga.onrender.com/api/beneficiarios/${clienteId}`, {
         ...cliente,
         estado: updatedStatus
       });

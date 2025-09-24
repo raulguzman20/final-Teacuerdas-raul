@@ -59,7 +59,7 @@ const VentaCursosFormNew = ({ open, onClose, onSubmit }) => {
 
   const loadBeneficiarios = async (searchText = '') => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/beneficiarios?search=${searchText}`);
+      const response = await axios.get(`https://apiwebmga.onrender.com/api/beneficiarios?search=${searchText}`);
       const filteredBeneficiarios = response.data.filter(beneficiario => 
         beneficiario.clienteId && !beneficiario.clienteId.toLowerCase().includes('cliente')
       );
@@ -73,7 +73,7 @@ const VentaCursosFormNew = ({ open, onClose, onSubmit }) => {
   // Cargar cursos
   const loadCursos = async (searchText) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/cursos?search=${searchText}`);
+      const response = await axios.get(`https://apiwebmga.onrender.com/api/cursos?search=${searchText}`);
       setCursos(response.data);
     } catch (error) {
       console.error('Error al cargar cursos:', error);
@@ -84,7 +84,7 @@ const VentaCursosFormNew = ({ open, onClose, onSubmit }) => {
   // Cargar información del cliente
   const loadClienteInfo = async (beneficiarioId) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/beneficiarios/${beneficiarioId}`);
+      const response = await axios.get(`https://apiwebmga.onrender.com/api/beneficiarios/${beneficiarioId}`);
       setClienteInfo(response.data);
     } catch (error) {
       console.error('Error al cargar información del cliente:', error);
@@ -94,7 +94,7 @@ const VentaCursosFormNew = ({ open, onClose, onSubmit }) => {
   // Obtener el siguiente consecutivo
   const loadNextConsecutivo = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/ventas/next-consecutivo');
+      const response = await axios.get('https://apiwebmga.onrender.com/api/ventas/next-consecutivo');
       setNextConsecutivo(response.data.nextConsecutivo);
     } catch (error) {
       console.error('Error al cargar siguiente consecutivo:', error);
@@ -230,7 +230,7 @@ const VentaCursosFormNew = ({ open, onClose, onSubmit }) => {
     if (!formData.motivoAnulacion) delete dataToSend.motivoAnulacion;
 
     try {
-      const response = await axios.post('http://localhost:3000/api/ventas', dataToSend);
+      const response = await axios.post('https://apiwebmga.onrender.com/api/ventas', dataToSend);
       showSuccess('Venta creada exitosamente');
       if (onSubmit) onSubmit(response.data);
       onClose();

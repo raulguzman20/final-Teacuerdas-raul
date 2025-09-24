@@ -53,7 +53,7 @@ import {
 import axios from "axios"
 
 // Utilidades
-const API_BASE = "http://localhost:3000/api"
+const API_BASE = "https://apiwebmga.onrender.com/api"
 const MONTHS = [
   "Enero",
   "Febrero",
