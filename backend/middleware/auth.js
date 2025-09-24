@@ -2,6 +2,9 @@ const jwt = require('jsonwebtoken');
 const Usuario = require('../models/usuario');
 const UsuarioHasRol = require('../models/UsuarioHasRol');
 
+// Asegurar el mismo secreto que usa el login cuando no existe variable de entorno
+const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_jwt';
+
 const authMiddleware = {
   // Middleware para verificar el token JWT
   verifyToken: async (req, res, next) => {
@@ -15,7 +18,8 @@ const authMiddleware = {
         });
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Usar el mismo secreto consistente
+      const decoded = jwt.verify(token, JWT_SECRET);
       const usuario = await Usuario.findById(decoded.id);
 
       if (!usuario) {

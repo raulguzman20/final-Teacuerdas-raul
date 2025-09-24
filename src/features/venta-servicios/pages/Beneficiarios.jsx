@@ -18,6 +18,19 @@ const apiClient = axios.create({
   timeout: 10000, // 10 segundos de timeout
 });
 
+// Adjuntar JWT automáticamente en cada petición de este cliente local
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Función para buscar clientes (para el selector de clienteId)
 const buscarClientes = async () => {
   try {

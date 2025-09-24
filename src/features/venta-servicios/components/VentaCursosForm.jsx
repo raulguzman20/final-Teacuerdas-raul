@@ -527,22 +527,16 @@ const VentaCursosForm = ({
     }
     setAnulando(true)
     try {
-      // Ahora usamos el endpoint PATCH /api/ventas/:id/anular
-      const response = await fetch(`/api/ventas/${initialData?.id}/anular`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ motivoAnulacion }),
-      })
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.message || "Error al anular la venta")
-      }
+      // Ahora usamos el endpoint PATCH /api/ventas/:id/anular con axios (Authorization auto)
+      const { default: axios } = await import('axios')
+      await axios.patch(`/ventas/${initialData?.id}/anular`, { motivoAnulacion })
       setAlertMessage({ show: true, message: "Venta anulada correctamente", severity: "success" })
       setAnularDialogOpen(false)
       setMotivoAnulacion("")
       if (onClose) onClose()
     } catch (error) {
-      setAlertMessage({ show: true, message: error.message, severity: "error" })
+      const message = error?.response?.data?.message || error.message || "Error al anular la venta"
+      setAlertMessage({ show: true, message, severity: "error" })
     } finally {
       setAnulando(false)
     }

@@ -1,5 +1,16 @@
+/*
+  AuthContext.jsx
+  - Provee un contexto de autenticación para toda la app.
+  - Maneja: inicio/cierre de sesión, cambio de rol, persistencia en localStorage, navegación post login, y carga de permisos.
+  - Almacena el usuario con shape: { id, name, email, documento, tipo_de_documento, role, currentRole, allRoles, permisos, permissions, token }.
+  - Axios: El login no requiere Authorization. Luego de guardar el token, las peticiones usan interceptores globales para adjuntar Authorization Bearer automáticamente.
+  - Permisos: Se obtienen desde /rol_permiso_privilegio y se mapean a claves de frontend. Existe un fallback por rol.
+  - Rutas por defecto: según permisos/rol se redirige a Dashboard o a rutas específicas de módulos.
+  Nota: Evitar mutar el estado directamente; usar setUser y sincronizar con localStorage sólo cuando sea necesario.
+*/
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -13,27 +24,38 @@ export function AuthProvider({ children }) {
 
   const login = async ({ email, password }) => {
     try {
-      const response = await fetch('http://localhost:3000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ correo: email, contrasena: password }),
-      });
-      
-      const data = await response.json();
+      // 1) Autenticación: envía credenciales al backend
+      const response = await axios.post('/login', { correo: email, contrasena: password });
+      const data = response.data;
       
       if (data.success) {
-        // Obtener permisos desde la API rol_permiso_privilegio
-        const permissionsSet = new Set();
+        // 2) Persistencia: guarda usuario y token en estado y localStorage
+        const rolNombre = (data?.usuario?.rol?.nombre || data?.usuario?.rolNombre || '').toLowerCase();
+        const userData = {
+          id: data.usuario.id,
+          name: `${data.usuario.nombre} ${data.usuario.apellido}`,
+          email: data.usuario.correo,
+          documento: data.usuario.documento,
+          tipo_de_documento: data.usuario.tipo_de_documento,
+          role: rolNombre,
+          currentRole: data.usuario.rol,
+          allRoles: data.usuario.todosLosRoles || [data.usuario.rol],
+          permissions: [],
+          permisos: data.usuario.permisos,
+          token: data.token,
+        };
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('token', data.token);
         
+        // 3) Autorización: consulta permisos por rol y los mapea a claves de frontend
+        const currentRol = data.usuario?.rol;
+        const rolId = currentRol?._id || currentRol?.id;
         try {
-          const currentRol = data.usuario?.rol;
-          const rolId = currentRol?._id || currentRol?.id;
-          const rolPermisoResponse = await fetch(`http://localhost:3000/api/rol_permiso_privilegio?rolId=${rolId}`);
-          const rolPermisoData = await rolPermisoResponse.json();
+          const rolPermisoResponse = await axios.get('/rol_permiso_privilegio', { params: { rolId } });
+          const rolPermisoData = rolPermisoResponse.data;
           
-          // Mapeo de módulos del backend a permisos del frontend
+          // Mapeo módulos->permisos del frontend
           const moduloToPermission = {
             'beneficiarios': 'venta-servicios-beneficiarios',
             'asistencia': 'venta-servicios-asistencia',
@@ -51,8 +73,7 @@ export function AuthProvider({ children }) {
             'usuarios': 'configuracion-usuarios',
             'dashboard': 'dashboard'
           };
-          
-          // Procesar permisos desde la API
+          const permissionsSet = new Set();
           if (rolPermisoData && Array.isArray(rolPermisoData)) {
             rolPermisoData.forEach(relacion => {
               const permisoNombre = relacion.permisoId?.nombre || relacion.permiso?.nombre;
@@ -61,78 +82,51 @@ export function AuthProvider({ children }) {
               }
             });
           }
+          // Fallback de permisos si el backend no responde o está incompleto
+          if (rolNombre === 'administrador') {
+            permissionsSet.add('*');
+            permissionsSet.add('dashboard');
+          } else if (rolNombre === 'profesor') {
+            permissionsSet.add('servicios-musicales-profesores');
+            permissionsSet.add('servicios-musicales-programacion-profesores');
+            permissionsSet.add('servicios-musicales-aulas');
+            permissionsSet.add('servicios-musicales-clases');
+            permissionsSet.add('venta-servicios-asistencia');
+          } else if (rolNombre === 'beneficiario') {
+            permissionsSet.add('servicios-musicales-programacion-clases');
+          } else if (rolNombre === 'cliente') {
+            permissionsSet.add('venta-servicios-pagos');
+            permissionsSet.add('venta-servicios-beneficiarios');
+          }
+          const permissions = Array.from(permissionsSet);
+          const updated = { ...userData, permissions };
+          setUser(updated);
+          localStorage.setItem('user', JSON.stringify(updated));
         } catch (error) {
           console.error('Error al obtener permisos desde API:', error);
-          // Fallback a permisos por defecto según el rol
+          // Mantener permisos por fallback (definido arriba) para evitar bloquear navegación
         }
         
-        // Agregar permisos específicos según el rol como fallback
-        const rolNombre = (data?.usuario?.rol?.nombre || data?.usuario?.rolNombre || '').toLowerCase();
-        
-        if (rolNombre === 'administrador') {
-          // Administradores tienen acceso a todo
-          permissionsSet.add('*');
-          permissionsSet.add('dashboard');
-        } else if (rolNombre === 'profesor') {
-          // Profesores pueden ver módulos relacionados con servicios musicales (excepto cursos-matriculas)
-          permissionsSet.add('servicios-musicales-profesores');
-          permissionsSet.add('servicios-musicales-programacion-profesores');
-          permissionsSet.add('servicios-musicales-aulas');
-          permissionsSet.add('servicios-musicales-clases');
-          permissionsSet.add('venta-servicios-asistencia');
-        } else if (rolNombre === 'beneficiario') {
-          // Beneficiarios solo pueden ver programación de clases
-          permissionsSet.add('servicios-musicales-programacion-clases');
-        } else if (rolNombre === 'cliente') {
-          // Clientes solo pueden ver pagos y beneficiarios
-          permissionsSet.add('venta-servicios-pagos');
-          permissionsSet.add('venta-servicios-beneficiarios');
-        }
-        
-        const permissions = Array.from(permissionsSet);
-        
-        const userData = {
-          id: data.usuario.id,
-          name: `${data.usuario.nombre} ${data.usuario.apellido}`,
-          email: data.usuario.correo,
-          documento: data.usuario.documento,
-          tipo_de_documento: data.usuario.tipo_de_documento,
-          role: (data?.usuario?.rol?.nombre || data?.usuario?.rolNombre || '').toLowerCase(),
-          currentRole: data.usuario.rol, // Rol actual completo
-          allRoles: data.usuario.todosLosRoles || [data.usuario.rol], // Todos los roles disponibles
-          permissions: permissions,
-          permisos: data.usuario.permisos, // Guardar permisos originales del backend
-          token: data.token
-        };
-        
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('token', data.token);
-        
-        // Redirigir según los permisos del usuario
+        // 4) Navegación: determina ruta por defecto según permisos/rol
         const getDefaultRoute = (permissions, role) => {
-          if (role === 'cliente') {
-            return '/venta-servicios/beneficiarios';
-          } else if (role === 'profesor') {
-            return '/servicios-musicales/programacion-profesores';
-          } else if (role === 'beneficiario') {
-            return '/servicios-musicales/programacion-clases';
-          } else if (permissions.includes('dashboard') || permissions.includes('*')) {
-            return '/dashboard';
-          } else {
-            return '/servicios-musicales/programacion-clases'; // Ruta por defecto
-          }
+          if (role === 'cliente') return '/venta-servicios/beneficiarios';
+          if (role === 'profesor') return '/servicios-musicales/programacion-profesores';
+          if (role === 'beneficiario') return '/servicios-musicales/programacion-clases';
+          if (permissions.includes('dashboard') || permissions.includes('*')) return '/dashboard';
+          return '/servicios-musicales/programacion-clases';
         };
-        
-        navigate(getDefaultRoute(permissions, rolNombre));
+        const currentPermissions = JSON.parse(localStorage.getItem('user'))?.permissions || [];
+        navigate(getDefaultRoute(currentPermissions, rolNombre));
       } else {
+        // Credenciales inválidas o respuesta sin success
         alert(data.message || 'Credenciales incorrectas');
       }
     } catch (error) {
-       console.error('Error en login:', error);
-       alert('Error de conexión. Verifique que el servidor esté funcionando.');
-     }
-   };
+      // Errores de red o del servidor
+      console.error('Error en login:', error);
+      alert('Error de conexión. Verifique que el servidor esté funcionando.');
+    }
+  };
 
   const logout = () => {
     setUser(null);
@@ -142,24 +136,24 @@ export function AuthProvider({ children }) {
 
   const updateUser = (userData) => {
     try {
-      // Mantener los permisos y roles existentes si no se proporcionan nuevos
+      // Mantener permisos/roles existentes si no se reciben nuevos
       const existingUser = JSON.parse(localStorage.getItem('user')) || user;
       const updatedData = {
         ...existingUser,
         ...userData,
-        // Mantener la contraseña existente si no se modifica
+        // No sobrescribir contraseña si el placeholder '****' está presente
         password: userData.password === '****' ? existingUser.password : userData.password,
-        // Asegurar que se mantengan los permisos y roles
+        // Asegurar persistencia de permisos y rol
         permissions: userData.permissions || existingUser.permissions,
         role: userData.role || existingUser.role
       };
 
-      // Actualizar el usuario en el estado y localStorage
+      // Actualiza estado y almacenamiento
       setUser(updatedData);
       localStorage.setItem('user', JSON.stringify(updatedData));
-      alert('Datos guardados exitosamente'); // Agregar alerta de éxito
+      alert('Datos guardados exitosamente');
       
-      // Redirigir según los permisos del usuario
+      // Recalcula ruta por defecto post actualización
       const getDefaultRoute = (permissions, role) => {
         if (role === 'cliente') {
           return '/venta-servicios/beneficiarios';
@@ -170,7 +164,7 @@ export function AuthProvider({ children }) {
         } else if (permissions.includes('dashboard') || permissions.includes('*')) {
           return '/dashboard';
         } else {
-          return '/servicios-musicales/programacion-clases'; // Ruta por defecto
+          return '/servicios-musicales/programacion-clases';
         }
       };
       
@@ -184,31 +178,21 @@ export function AuthProvider({ children }) {
 
   const changeRole = async (newRoleId) => {
     try {
-      const response = await fetch('http://localhost:3000/api/login/cambiar-rol', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token}`
-        },
-        body: JSON.stringify({ 
-          usuarioId: user.id, 
-          nuevoRolId: newRoleId 
-        }),
+      // Envía solicitud para cambiar el rol actual del usuario
+      const response = await axios.post('/login/cambiar-rol', {
+        usuarioId: user.id,
+        nuevoRolId: newRoleId,
       });
-      
-      const data = await response.json();
+      const data = response.data;
       
       if (data.success) {
-        // Obtener permisos desde la API rol_permiso_privilegio
+        // Reconsultar permisos por el nuevo rol
         const permissionsSet = new Set();
-        
         try {
           const currentRol2 = data.usuario?.rol;
           const rolId2 = currentRol2?._id || currentRol2?.id;
-          const rolPermisoResponse = await fetch(`http://localhost:3000/api/rol_permiso_privilegio?rolId=${rolId2}`);
-          const rolPermisoData = await rolPermisoResponse.json();
-          
-          // Mapeo de módulos del backend a permisos del frontend
+          const rolPermisoResponse = await axios.get('/rol_permiso_privilegio', { params: { rolId: rolId2 } });
+          const rolPermisoData = rolPermisoResponse.data;
           const moduloToPermission = {
             'beneficiarios': 'venta-servicios-beneficiarios',
             'asistencia': 'venta-servicios-asistencia',
@@ -226,8 +210,6 @@ export function AuthProvider({ children }) {
             'usuarios': 'configuracion-usuarios',
             'dashboard': 'dashboard'
           };
-          
-          // Procesar permisos desde la API
           if (rolPermisoData && Array.isArray(rolPermisoData)) {
             rolPermisoData.forEach(relacion => {
               const permisoNombre = relacion.permisoId?.nombre || relacion.permiso?.nombre;
@@ -238,82 +220,42 @@ export function AuthProvider({ children }) {
           }
         } catch (error) {
           console.error('Error al obtener permisos desde API:', error);
-          // Fallback a permisos por defecto según el rol
         }
         
-        // Agregar permisos específicos según el rol como fallback
+        // Fallback actualizado según el nuevo nombre de rol
         const rolNombre = (data?.usuario?.rol?.nombre || data?.usuario?.rolNombre || '').toLowerCase();
-        
         if (rolNombre === 'administrador') {
-          // Administradores tienen acceso a todo
           permissionsSet.add('*');
           permissionsSet.add('dashboard');
         } else if (rolNombre === 'profesor') {
-          // Profesores pueden ver módulos relacionados con servicios musicales (excepto cursos-matriculas)
           permissionsSet.add('servicios-musicales-profesores');
           permissionsSet.add('servicios-musicales-programacion-profesores');
           permissionsSet.add('servicios-musicales-aulas');
           permissionsSet.add('servicios-musicales-clases');
           permissionsSet.add('venta-servicios-asistencia');
         } else if (rolNombre === 'beneficiario') {
-          // Beneficiarios solo pueden ver programación de clases
           permissionsSet.add('servicios-musicales-programacion-clases');
         } else if (rolNombre === 'cliente') {
-          // Clientes solo pueden ver pagos y beneficiarios
           permissionsSet.add('venta-servicios-pagos');
           permissionsSet.add('venta-servicios-beneficiarios');
         }
-        
         const permissions = Array.from(permissionsSet);
-        
-        const updatedUserData = {
-          ...user,
-          role: (data?.usuario?.rol?.nombre || data?.usuario?.rolNombre || '').toLowerCase(),
-          currentRole: data.usuario.rol,
-          allRoles: data.usuario.todosLosRoles,
-          permissions: permissions,
-          permisos: data.usuario.permisos,
-          token: data.token
-        };
-        
-        setUser(updatedUserData);
-        localStorage.setItem('user', JSON.stringify(updatedUserData));
-        localStorage.setItem('token', data.token);
-        
-        // Redirigir según los permisos del nuevo rol
-        const getDefaultRoute = (permissions, role) => {
-          if (role === 'cliente') {
-            return '/venta-servicios/beneficiarios';
-          } else if (role === 'profesor') {
-            return '/servicios-musicales/programacion-profesores';
-          } else if (role === 'beneficiario') {
-            return '/servicios-musicales/programacion-clases';
-          } else if (permissions.includes('dashboard') || permissions.includes('*')) {
-            return '/dashboard';
-          } else {
-            return '/servicios-musicales/programacion-clases'; // Ruta por defecto
-          }
-        };
-        
-        navigate(getDefaultRoute(permissions, rolNombre));
-        
-        return { success: true, message: 'Rol cambiado exitosamente' };
-      } else {
-        return { success: false, message: data.message || 'Error al cambiar de rol' };
+        const updated = { ...user, currentRole: data.usuario?.rol, role: rolNombre, permissions };
+        setUser(updated);
+        localStorage.setItem('user', JSON.stringify(updated));
       }
     } catch (error) {
-      console.error('Error en cambio de rol:', error);
-      return { success: false, message: 'Error de conexión al cambiar de rol' };
+      console.error('Error al cambiar rol:', error);
     }
   };
 
   useEffect(() => {
-    // Sincronizar el estado del usuario con localStorage solo al montar el componente
+    // Efecto de inicialización: sincroniza estado con localStorage una sola vez
     const storedUser = localStorage.getItem('user');
     if (storedUser && !user) {
       setUser(JSON.parse(storedUser));
     }
-  }, []); // Remover 'user' de las dependencias para evitar bucle infinito
+  }, []); // Evitar bucles: no incluir 'user' en dependencias
 
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUser, changeRole }}>

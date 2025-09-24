@@ -11,6 +11,25 @@ const axiosInstance = axios.create({
   timeout: 10000
 });
 
+// Adjuntar token si existe al inicializar
+const existingToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+if (existingToken) {
+  axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${existingToken}`;
+}
+
+// Interceptor de request para asegurar que siempre se envía el token más reciente
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (token) {
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 const authService = {
   // Login
   login: async (email, password) => {
