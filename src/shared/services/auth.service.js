@@ -30,6 +30,14 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// Axios público (sin Authorization) para endpoints públicos como password-reset
+const axiosPublic = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  headers: { 'Accept': 'application/json' },
+  timeout: 60000, // 60s para evitar problemas con cold starts en Render
+});
+
+
 const authService = {
   // Login
   login: async (email, password) => {
@@ -143,34 +151,43 @@ const authService = {
     return localStorage.getItem("token")
   },
 
-  // Recuperar contraseña
+    // Recuperar contraseña
   forgotPassword: async (email) => {
     try {
-      const response = await axiosInstance.post(
+      console.log("=== AUTH SERVICE FORGOT PASSWORD ===", email);
+
+      // Enviamos { email } porque tu controlador usa: const { email } = req.body;
+      const response = await axiosPublic.post(
         "/password-reset/forgot-password",
-        { email: email },
-        { timeout: 60000 } // aumentar timeout para entornos con cold start
-      )
+        { email: email }
+      );
 
       return {
         success: true,
         message: response.data.message,
-      }
+      };
     } catch (error) {
-      console.error("Error en forgotPassword:", error)
-      // Manejo explícito de timeout
-      if (error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '')) {
+      console.error("Error en forgotPassword:", error);
+
+      const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '');
+
+      if (isTimeout) {
         return {
           success: false,
           message: 'El servidor tardó demasiado en responder. Intenta nuevamente en unos segundos.',
-        }
+        };
       }
+
       return {
         success: false,
-        message: error.response?.data?.error || "Error al recuperar contraseña",
-      }
+        message:
+          error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Servicio de recuperación no disponible. Intenta más tarde.",
+      };
     }
   },
+
 
   // Restablecer contraseña con token
   resetPassword: async (token, newPassword) => {

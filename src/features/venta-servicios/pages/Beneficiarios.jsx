@@ -175,21 +175,106 @@ const Beneficiarios = () => {
         // Continuar sin esta información
       }
 
-      // Filtrar beneficiarios según las reglas:
-      // 1. Si clienteId === _id, NO es un beneficiario (es un cliente)
-      // 2. Si clienteId === 'cliente', NO es un beneficiario (es un cliente)
-      // 3. Si clienteId es diferente a _id y diferente a 'cliente', ES un beneficiario
-      let beneficiariosFiltrados = beneficiarios.filter(beneficiario =>
-        beneficiario.clienteId !== beneficiario._id &&
-        beneficiario.clienteId !== 'cliente' || beneficiario.clienteId === beneficiario._id
-      );
+      // Filtrar solo registros que son beneficiarios (excluir clientes)
+      let beneficiariosFiltrados = beneficiarios.filter((beneficiario) => {
+        const clienteIdStr = String(beneficiario.clienteId || '').toLowerCase();
+        const selfIdStr = String(beneficiario._id || '');
+        return clienteIdStr !== selfIdStr.toLowerCase() && clienteIdStr !== 'cliente';
+      });
 
-      // Si el usuario es cliente, filtrar solo sus beneficiarios
+      // Si el usuario es cliente, filtrar solo beneficiarios pertenecientes a ese cliente
       if (user && user.role === 'cliente') {
-        console.log('Filtrando beneficiarios para cliente:', user.id);
-        beneficiariosFiltrados = beneficiariosFiltrados.filter(beneficiario =>
-          beneficiario.clienteId === user.id || beneficiario.clienteId === user.documento
-        );
+        // Utilidades de normalización para aumentar robustez
+        const normalize = (s) => (s ?? '').toString().trim().toLowerCase();
+        const onlyDigits = (s) => (s ?? '').toString().replace(/\D+/g, '');
+
+        const userIdStr = String(user.id || user._id || '');
+        const userDocDigits = onlyDigits(user.documento || '');
+        const userEmail = normalize(user.email || user.correo || '');
+
+        let clienteBeneficiario = null;
+        let clienteRefId = null; // ID de referencia del cliente para filtrar sus beneficiarios
+        let clienteUhr = null; // Declarado fuera del try para usarlo en fallbacks
+        try {
+          // 1) Intentar identificar el beneficiario vinculado al usuario por usuarios_has_rol
+          clienteUhr = Array.isArray(usuariosHasRol)
+            ? usuariosHasRol.find((u) => {
+                const uId = String(u?.usuarioId?._id || u?.usuarioId || '');
+                const uEmail = normalize(
+                  u?.usuarioId?.correo || u?.usuarioId?.email || u?.correo || u?.email || ''
+                );
+                return (uId && uId === userIdStr) || (!!uEmail && uEmail === userEmail);
+              })
+            : null;
+
+          if (clienteUhr) {
+            // Relajar la condición: basta con que el beneficiario esté enlazado por usuario_has_rolId
+            clienteBeneficiario = beneficiarios.find(
+              (b) => String(b.usuario_has_rolId) === String(clienteUhr._id)
+            );
+          }
+        } catch (e) {
+          console.warn('No se pudo resolver cliente vía usuarios_has_rol:', e?.message || e);
+        }
+
+        // 2) Fallback: por documento (solo dígitos)
+        if (!clienteBeneficiario && userDocDigits) {
+          clienteBeneficiario = beneficiarios.find((b) => {
+            const beneDocDigits = onlyDigits(b.numero_de_documento || b.numeroDocumento);
+            return beneDocDigits && beneDocDigits === userDocDigits;
+          });
+        }
+
+        // 3) Fallback adicional: por correo almacenado en beneficiario (si existe en datos)
+        if (!clienteBeneficiario && userEmail) {
+          clienteBeneficiario = beneficiarios.find((b) => normalize(b.correo) === userEmail);
+        }
+
+        // Determinar el ID de referencia del cliente. Si el beneficiario encontrado tiene un clienteId válido
+        // y distinto de su propio _id y distinto de la marca 'cliente', usamos ese. En caso contrario, usamos su propio _id.
+        if (clienteBeneficiario?._id) {
+          const rawClienteId = String(clienteBeneficiario.clienteId || '').trim();
+          if (
+            rawClienteId &&
+            rawClienteId.toLowerCase() !== 'cliente' &&
+            rawClienteId !== String(clienteBeneficiario._id)
+          ) {
+            clienteRefId = rawClienteId;
+          } else {
+            clienteRefId = String(clienteBeneficiario._id);
+          }
+        }
+
+        if (clienteRefId) {
+          console.log('Cliente identificado. Filtrando beneficiarios por clienteId:', clienteRefId);
+          beneficiariosFiltrados = beneficiarios.filter((b) => String(b.clienteId) === clienteRefId);
+          // Fallback adicional: si no hay resultados, usar vínculo usuario_has_rol
+          if ((!Array.isArray(beneficiariosFiltrados) || beneficiariosFiltrados.length === 0) && clienteUhr?._id) {
+            console.log('Sin resultados por clienteId; aplicando fallback usuario_has_rolId:', clienteUhr._id);
+            beneficiariosFiltrados = beneficiarios.filter(
+              (b) => String(b.usuario_has_rolId) === String(clienteUhr._id)
+            );
+          }
+        } else if (clienteUhr?._id) {
+          // No se pudo deducir clienteId, pero sí existe vínculo usuario_has_rol
+          console.log('Filtrando por usuario_has_rolId al no contar con clienteId:', clienteUhr._id);
+          beneficiariosFiltrados = beneficiarios.filter(
+            (b) => String(b.usuario_has_rolId) === String(clienteUhr._id)
+          );
+        } else {
+          // Si no se pudo determinar el cliente, no mostrar datos ajenos
+          beneficiariosFiltrados = [];
+          console.warn(
+            'No se pudo determinar el cliente asociado al usuario actual; lista vacía para proteger datos.',
+            {
+              userId: userIdStr,
+              userEmail,
+              userDocDigits,
+            }
+          );
+        }
+
+        console.log('Cliente beneficiario detectado:', clienteBeneficiario?._id);
         console.log('Beneficiarios filtrados para cliente:', beneficiariosFiltrados.length);
       }
 

@@ -847,6 +847,123 @@ const Pagos = () => {
           valor_total: pago.valor_total || pago.ventas?.valor_total || 0,
           valorTotal: pago.valor_total || pago.ventas?.valor_total || 0
         }));
+
+        // Utilidades para identificar el cliente del usuario autenticado (fallbacks)
+        const onlyDigits = (s) => (s || '').toString().replace(/\D/g, '');
+
+        const resolveClienteIdForUser = async (user) => {
+          try {
+            const BASE = 'https://apiwebmga.onrender.com/api';
+        
+            // Obtener beneficiarios y usuarios_has_rol para resolver el cliente del usuario
+            const [benefRes, uhrRes] = await Promise.all([
+              axios.get(`${BASE}/beneficiarios`),
+              axios.get(`${BASE}/usuarios_has_rol`)
+            ]);
+        
+            const beneficiarios = Array.isArray(benefRes.data?.beneficiarios)
+              ? benefRes.data.beneficiarios
+              : (Array.isArray(benefRes.data) ? benefRes.data : []);
+        
+            const usuariosHasRol = Array.isArray(uhrRes.data?.relationships)
+              ? uhrRes.data.relationships
+              : (Array.isArray(uhrRes.data) ? uhrRes.data : []);
+        
+            // 1) Intento por usuarios_has_rol del usuario
+            const userUhrs = usuariosHasRol.filter(u => String(u?.usuarioId?._id) === String(user?.id));
+            let clienteBeneficiario = beneficiarios.find(b => userUhrs.some(u => String(u?._id) === String(b?.usuario_has_rolId)));
+        
+            // 2) Fallback por documento (solo dígitos)
+            if (!clienteBeneficiario && user?.documento) {
+              const userDoc = onlyDigits(user.documento);
+              clienteBeneficiario = beneficiarios.find(b => onlyDigits(b?.numero_de_documento || b?.numeroDocumento) === userDoc);
+            }
+        
+            // 3) Fallback por email
+            if (!clienteBeneficiario && user?.email) {
+              const email = (user.email || '').toLowerCase();
+              // Buscar primero por usuarios_has_rol.usuarioId.correo
+              const uhrByEmail = usuariosHasRol.find(u => (u?.usuarioId?.correo || '').toLowerCase() === email);
+              if (uhrByEmail) {
+                clienteBeneficiario = beneficiarios.find(b => b?.usuario_has_rolId === uhrByEmail?._id);
+              }
+              // Si no, por email del beneficiario
+              if (!clienteBeneficiario) {
+                clienteBeneficiario = beneficiarios.find(b => ((b?.email || b?.correo || '').toLowerCase() === email));
+              }
+            }
+        
+            if (!clienteBeneficiario) return null;
+        
+            // Determinar el clienteRefId: si el cliente es su propio beneficiario o tiene marca 'cliente', usar su _id; de lo contrario, usar clienteId
+            const esClientePropio = String(clienteBeneficiario?.clienteId) === String(clienteBeneficiario?._id) || clienteBeneficiario?.clienteId === 'cliente';
+            const clienteRefId = esClientePropio || !clienteBeneficiario?.clienteId
+              ? clienteBeneficiario?._id
+              : clienteBeneficiario?.clienteId;
+        
+            return clienteRefId || null;
+          } catch (err) {
+            console.warn('resolveClienteIdForUser fallback error:', err);
+            return null;
+          }
+        };
+
+        // Fallback: si el usuario es cliente y no hay pagos por documento, reintentar por clienteId resuelto desde el frontend
+        if (isCliente && pagosFormateados.length === 0) {
+          console.log('Sin pagos por documento. Intentando fallback por clienteId...');
+          const clienteRefId = await resolveClienteIdForUser(user);
+          if (clienteRefId) {
+            const resp2 = await axios.get(`https://apiwebmga.onrender.com/api/pagos?clienteId=${clienteRefId}`);
+            if (resp2.data && resp2.data.success) {
+              pagosFormateados = resp2.data.data.map(pago => ({
+                ...pago,
+                valor_total: pago.valor_total || pago.ventas?.valor_total || 0,
+                valorTotal: pago.valor_total || pago.ventas?.valor_total || 0
+              }));
+              console.log('Pagos recibidos (fallback clienteId):', pagosFormateados);
+            }
+          } else {
+            console.warn('No se pudo resolver clienteRefId para el usuario autenticado');
+          }
+        }
+
+        // Fallback final: si sigue sin haber pagos para cliente, traer todos y filtrar en frontend
+        if (isCliente && pagosFormateados.length === 0) {
+          try {
+            console.log('Fallback final: cargando todos los pagos y filtrando en frontend por clienteId/documento...');
+            const BASE = 'https://apiwebmga.onrender.com/api';
+            const respAll = await axios.get(`${BASE}/pagos`);
+            const all = (respAll.data && respAll.data.success)
+              ? respAll.data.data.map(p => ({
+                  ...p,
+                  valor_total: p.valor_total || p.ventas?.valor_total || 0,
+                  valorTotal: p.valor_total || p.ventas?.valor_total || 0
+                }))
+              : [];
+
+            const clienteRefId = await resolveClienteIdForUser(user);
+            const userDoc = onlyDigits(user?.documento);
+
+            const filtrados = all.filter(p => {
+              const bene = p?.ventas?.beneficiario;
+              if (!bene) return false;
+              const beneClienteId = bene?.clienteId ? String(bene.clienteId) : '';
+              const beneId = bene?._id ? String(bene._id) : '';
+              const clienteMatch = clienteRefId
+                ? (beneClienteId === String(clienteRefId) || beneId === String(clienteRefId))
+                : false;
+              const docMatch = userDoc
+                ? (onlyDigits(bene?.cliente?.numeroDocumento || bene?.cliente?.numero_de_documento || '') === userDoc)
+                : false;
+              return clienteMatch || docMatch;
+            });
+
+            pagosFormateados = filtrados;
+            console.log(`Pagos recibidos (fallback final, total=${pagosFormateados.length}):`, pagosFormateados);
+          } catch (e) {
+            console.warn('Error en fallback final de filtrado frontend:', e?.message || e);
+          }
+        }
        
         // Si no hay pagos, mostrar mensaje
         if (pagosFormateados.length === 0 && isCliente) {

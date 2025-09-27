@@ -10,7 +10,13 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: 'raulguz327@gmail.com',
     pass: 'ursz cytv qlzs yywa'
-  }
+  },
+  // Evitar bloqueos prolongados del socket SMTP
+  pool: true,
+  maxConnections: 1,
+  maxMessages: 5,
+  connectionTimeout: 15000,
+  socketTimeout: 15000
 });
 
 // POST /forgot-password - Solicitar recuperación de contraseña
@@ -73,9 +79,16 @@ const forgotPassword = async (req, res) => {
       `
     };
 
-    await transporter.sendMail(mailOptions);
+    // Enviar el correo de manera asíncrona para evitar bloquear la respuesta HTTP
+    transporter.sendMail(mailOptions)
+      .then(info => {
+        console.log('Password reset email sent:', info.messageId)
+      })
+      .catch(err => {
+        console.error('Error enviando correo de restablecimiento:', err)
+      })
 
-    // 5. Devolver mensaje de éxito al frontend
+    // Responder inmediatamente para evitar timeouts en el cliente
     res.status(200).json({
       message: 'Hemos enviado un correo con instrucciones para restablecer tu contraseña.'
     });
