@@ -92,6 +92,8 @@ export function AuthProvider({ children }) {
             permissionsSet.add('servicios-musicales-aulas');
             permissionsSet.add('servicios-musicales-clases');
             permissionsSet.add('venta-servicios-asistencia');
+            // ✅ Permitir acceso al módulo Programación de Clases por defecto
+            permissionsSet.add('servicios-musicales-programacion-clases');
           } else if (rolNombre === 'beneficiario') {
             permissionsSet.add('servicios-musicales-programacion-clases');
           } else if (rolNombre === 'cliente') {
@@ -236,6 +238,8 @@ export function AuthProvider({ children }) {
           permissionsSet.add('servicios-musicales-aulas');
           permissionsSet.add('servicios-musicales-clases');
           permissionsSet.add('venta-servicios-asistencia');
+          // ✅ Permitir acceso al módulo Programación de Clases por defecto
+          permissionsSet.add('servicios-musicales-programacion-clases');
         } else if (rolNombre === 'beneficiario') {
           permissionsSet.add('servicios-musicales-programacion-clases');
         } else if (rolNombre === 'cliente') {
@@ -252,6 +256,37 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ✅ Utilidad de permisos por módulo/acción usada en ProgramacionClases
+  const hasPrivilege = (modulo, accion) => {
+    const moduloToPermission = {
+      'beneficiarios': 'venta-servicios-beneficiarios',
+      'asistencia': 'venta-servicios-asistencia',
+      'pagos': 'venta-servicios-pagos',
+      'programacion_de_clases': 'servicios-musicales-programacion-clases',
+      'profesores': 'servicios-musicales-profesores',
+      'programacion_de_profesores': 'servicios-musicales-programacion-profesores',
+      'cursos_matriculas': 'servicios-musicales-cursos-matriculas',
+      'aulas': 'servicios-musicales-aulas',
+      'clases': 'servicios-musicales-clases',
+      'clientes': 'venta-servicios-clientes',
+      'venta_matriculas': 'venta-servicios-venta-matriculas',
+      'venta_cursos': 'venta-servicios-venta-cursos',
+      'roles': 'configuracion-roles',
+      'usuarios': 'configuracion-usuarios',
+      'dashboard': 'dashboard'
+    };
+    const permissionKey = moduloToPermission[modulo] || modulo;
+    const userPermissions = user?.permissions || [];
+    const hasModuleAccess = userPermissions.includes(permissionKey) || userPermissions.includes('*');
+    if (!hasModuleAccess) return false;
+    // Regla simple por rol: beneficiario solo puede ver
+    if (user?.role === 'beneficiario') {
+      return accion === 'ver' || accion === undefined;
+    }
+    // Administrador y otros roles con permiso de módulo: permitir CRUD
+    return true;
+  };
+
   useEffect(() => {
     // Efecto de inicialización: sincroniza estado con localStorage una sola vez
     const storedUser = localStorage.getItem('user');
@@ -261,7 +296,7 @@ export function AuthProvider({ children }) {
   }, []); // Evitar bucles: no incluir 'user' en dependencias
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, changeRole }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, changeRole, hasPrivilege }}>
       {children}
     </AuthContext.Provider>
   );

@@ -27,7 +27,7 @@ const Auth = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const MIN_SPINNER_MS = 3000; // asegura que el loader sea visible al menos este tiempo
+    const MIN_SPINNER_MS = 2000; // asegura que el loader sea visible al menos este tiempo
     const start = Date.now();
     try {
       setLoading(true);
