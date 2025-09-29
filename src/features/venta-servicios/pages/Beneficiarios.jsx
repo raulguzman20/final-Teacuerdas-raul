@@ -6,6 +6,7 @@ import { FormModal } from '../../../shared/components/FormModal';
 import { StatusButton } from '../../../shared/components/StatusButton';
 import { Snackbar, Alert } from '@mui/material';
 import { useAuth } from '../../../features/auth/context/AuthContext';
+import { ConfirmationDialog } from '../../../shared/components/ConfirmationDialog';
 
 // Configuración de la API - Corrección del error de process.env
 const API_BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 'https://apiwebmga.onrender.com';
@@ -109,6 +110,7 @@ const Beneficiarios = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
+  const [confirmationDialog, setConfirmationDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   useEffect(() => {
     fetchBeneficiarios();
@@ -199,12 +201,12 @@ const Beneficiarios = () => {
           // 1) Intentar identificar el beneficiario vinculado al usuario por usuarios_has_rol
           clienteUhr = Array.isArray(usuariosHasRol)
             ? usuariosHasRol.find((u) => {
-                const uId = String(u?.usuarioId?._id || u?.usuarioId || '');
-                const uEmail = normalize(
-                  u?.usuarioId?.correo || u?.usuarioId?.email || u?.correo || u?.email || ''
-                );
-                return (uId && uId === userIdStr) || (!!uEmail && uEmail === userEmail);
-              })
+              const uId = String(u?.usuarioId?._id || u?.usuarioId || '');
+              const uEmail = normalize(
+                u?.usuarioId?.correo || u?.usuarioId?.email || u?.correo || u?.email || ''
+              );
+              return (uId && uId === userIdStr) || (!!uEmail && uEmail === userEmail);
+            })
             : null;
 
           if (clienteUhr) {
@@ -358,41 +360,37 @@ const Beneficiarios = () => {
   };
 
   const handleDelete = async (beneficiario) => {
-    const confirmDelete = window.confirm(`¿Está seguro de eliminar al beneficiario ${beneficiario.nombre}?`);
-    if (confirmDelete) {
-      try {
-        setLoading(true);
-        await axios.delete(`https://apiwebmga.onrender.com/api/beneficiarios/${beneficiario.id}`);
-        await fetchBeneficiarios(); // Recargar la lista de beneficiarios
-
-        // Mostrar mensaje de éxito
-        setAlertMessage(`Beneficiario "${beneficiario.nombre} ${beneficiario.apellido}" eliminado exitosamente.`);
-        setAlertSeverity('success');
-        setAlertOpen(true);
-
-      } catch (error) {
-        console.error('Error al eliminar el beneficiario:', error);
-
-        let errorMessage = 'Error al eliminar el beneficiario';
-
-        // Mostrar mensaje de error específico si el beneficiario está asociado a ventas
-        if (error.response && error.response.status === 400) {
-          errorMessage = 'No se puede eliminar el beneficiario porque está asociado a una venta de curso o matrícula';
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        } else {
-          errorMessage = 'Error al eliminar el beneficiario. Inténtalo de nuevo.';
+    setConfirmationDialog({
+      open: true,
+      title: 'Confirmar Eliminación',
+      message: `¿Está seguro de eliminar al beneficiario ${beneficiario.nombre}?`,
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await axios.delete(`https://apiwebmga.onrender.com/api/beneficiarios/${beneficiario.id}`);
+          await fetchBeneficiarios();
+          setAlertMessage(`Beneficiario "${beneficiario.nombre} ${beneficiario.apellido}" eliminado exitosamente.`);
+          setAlertSeverity('success');
+          setAlertOpen(true);
+        } catch (error) {
+          console.error('Error al eliminar el beneficiario:', error);
+          let errorMessage = 'Error al eliminar el beneficiario';
+          if (error.response && error.response.status === 400) {
+            errorMessage = 'No se puede eliminar el beneficiario porque está asociado a una venta de curso o matrícula';
+          } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+          } else {
+            errorMessage = 'Error al eliminar el beneficiario. Inténtalo de nuevo.';
+          }
+          setAlertMessage(errorMessage);
+          setAlertSeverity('error');
+          setAlertOpen(true);
+        } finally {
+          setLoading(false);
+          setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null });
         }
-
-        // Mostrar alerta de error en lugar de alert()
-        setAlertMessage(errorMessage);
-        setAlertSeverity('error');
-        setAlertOpen(true);
-
-      } finally {
-        setLoading(false);
       }
-    }
+    });
   };
 
   const handleView = (beneficiario) => {
@@ -974,6 +972,14 @@ const Beneficiarios = () => {
     { id: 'estado', label: 'Estado', type: 'switch', defaultValue: true }
   ];
 
+  // Función para manejar el cierre de la alerta
+  const handleCloseAlert = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setAlertOpen(false);
+  };
+
   // Mostrar error si existe
   if (error && beneficiarios.length === 0) {
     return (
@@ -1005,14 +1011,6 @@ const Beneficiarios = () => {
       </div>
     );
   }
-
-  // Función para manejar el cierre de la alerta
-  const handleCloseAlert = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setAlertOpen(false);
-  };
 
   return (
     <>
@@ -1408,6 +1406,17 @@ const Beneficiarios = () => {
         maxWidth="md"
         submitButtonText="Crear Beneficiario"
       />
+
+      <ConfirmationDialog
+        open={confirmationDialog.open}
+        title={confirmationDialog.title}
+        content={confirmationDialog.message}
+        onConfirm={confirmationDialog.onConfirm}
+        onClose={() => setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null })}
+        confirmButtonText="Eliminar"
+        cancelButtonText="Cancelar"
+      />
+
       {/* Snackbar para mostrar alertas */}
       <Snackbar
         open={alertOpen}

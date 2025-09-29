@@ -15,6 +15,11 @@ const AlertDialog = ({ open, title, message, onClose, onConfirm }) => {
       onClose={onClose}
       aria-labelledby="alert-dialog-title"
       aria-describedby="alert-dialog-description"
+      PaperProps={{
+        sx: {
+          borderRadius: '16px',
+        },
+      }}
     >
       <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
       <DialogContent>

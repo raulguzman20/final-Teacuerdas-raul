@@ -24,6 +24,7 @@ import { FormModal } from '../../../shared/components/FormModal';
 import { StatusButton } from '../../../shared/components/StatusButton';
 import AlertComponent from '../components/AlertComponent';
 import useAlert from '../../../shared/hooks/useAlert';
+import { ConfirmationDialog } from '../../../shared/components/ConfirmationDialog';
 
 const TabPanel = (props) => {
   const { children, value, index, ...other } = props;
@@ -65,6 +66,9 @@ const CursosMatriculas = () => {
   const [matriculaDetailOpen, setMatriculaDetailOpen] = useState(false);
   const [matriculaFormOpen, setMatriculaFormOpen] = useState(false);
   const [isEditingMatricula, setIsEditingMatricula] = useState(false);
+
+  // Estado para el diálogo de confirmación de eliminación
+  const [confirmationDialog, setConfirmationDialog] = useState({ open: false, title: '', message: '', onConfirm: null });
 
   // Tab handling
   const handleTabChange = (event, newValue) => {
@@ -185,44 +189,47 @@ const CursosMatriculas = () => {
   };
 
   const handleDeleteCurso = async (curso) => {
-    const confirmDelete = window.confirm(`¿Está seguro de eliminar el curso ${curso.nombre}?`);
-    if (confirmDelete) {
-      try {
-        const response = await axios.delete(`${API_URL}/cursos/${curso._id}`);
-        
-        // Verificar si el curso fue eliminado o solo cambiado a inactivo
-        if (response.data.curso) {
-          // El curso estaba asociado a una venta y se cambió a inactivo
-          showSuccess(response.data.message || `El curso ${curso.nombre} ha sido cambiado a inactivo`);
-        } else {
-          // El curso fue eliminado completamente
-          showSuccess(`El curso ${curso.nombre} ha sido eliminado exitosamente`);
-        }
-        
-        fetchCursos(); // Recargar la lista de cursos
-      } catch (error) {
-        console.error('Error al eliminar curso:', error);
-        
-        // Intentar manejar el error de manera más específica
-        if (error.response) {
-          if (error.response.status === 500) {
-            // Si es un error 500, podría ser un problema con la asociación a ventas
-            // Intentamos cambiar solo el estado a inactivo
-            try {
-              await axios.put(`${API_URL}/cursos/${curso._id}`, { estado: false });
-              showSuccess(`Se ha cambiado el estado del curso ${curso.nombre} a inactivo`);
-              fetchCursos(); // Recargar la lista de cursos
-              return;
-            } catch (stateError) {
-              console.error('Error al cambiar estado después de error 500:', stateError);
-            }
+    setConfirmationDialog({
+      open: true,
+      title: 'Confirmar Eliminación',
+      message: `¿Está seguro de eliminar el curso ${curso.nombre}?`,
+      onConfirm: async () => {
+        try {
+          const response = await axios.delete(`${API_URL}/cursos/${curso._id}`);
+          // Verificar si el curso fue eliminado o solo cambiado a inactivo
+          if (response.data.curso) {
+            // El curso estaba asociado a una venta y se cambió a inactivo
+            showSuccess(response.data.message || `El curso ${curso.nombre} ha sido cambiado a inactivo`);
+          } else {
+            // El curso fue eliminado completamente
+            showSuccess(`El curso ${curso.nombre} ha sido eliminado exitosamente`);
           }
-          showError(`Error al eliminar el curso ${curso.nombre}: ${error.response.data?.message || error.message}`);
-        } else {
-          showError(`Error al eliminar el curso ${curso.nombre}`);
+          fetchCursos(); // Recargar la lista de cursos
+        } catch (error) {
+          console.error('Error al eliminar curso:', error);
+          // Intentar manejar el error de manera más específica
+          if (error.response) {
+            if (error.response.status === 500) {
+              // Si es un error 500, podría ser un problema con la asociación a ventas
+              // Intentamos cambiar solo el estado a inactivo
+              try {
+                await axios.put(`${API_URL}/cursos/${curso._id}`, { estado: false });
+                showSuccess(`Se ha cambiado el estado del curso ${curso.nombre} a inactivo`);
+                fetchCursos(); // Recargar la lista de cursos
+                setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null });
+                return;
+              } catch (stateError) {
+                console.error('Error al cambiar estado después de error 500:', stateError);
+              }
+            }
+            showError(`Error al eliminar el curso ${curso.nombre}: ${error.response.data?.message || error.message}`);
+          } else {
+            showError(`Error al eliminar el curso ${curso.nombre}`);
+          }
         }
+        setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null });
       }
-    }
+    });
   };
 
   const handleViewCurso = (curso) => {
@@ -401,44 +408,47 @@ const CursosMatriculas = () => {
   };
 
   const handleDeleteMatricula = async (matricula) => {
-    const confirmDelete = window.confirm(`¿Está seguro de eliminar la matrícula ${matricula.nombre}?`);
-    if (confirmDelete) {
-      try {
-        const response = await axios.delete(`${API_URL}/matriculas/${matricula._id}`);
-        
-        // Verificar si la matrícula fue eliminada o solo cambiada a inactivo
-        if (response.data.matricula) {
-          // La matrícula estaba asociada a una venta y se cambió a inactivo
-          showSuccess(response.data.message || `La matrícula ${matricula.nombre} ha sido cambiada a inactivo`);
-        } else {
-          // La matrícula fue eliminada completamente
-          showSuccess(`La matrícula ${matricula.nombre} ha sido eliminada exitosamente`);
-        }
-        
-        fetchMatriculas(); // Recargar la lista de matrículas
-      } catch (error) {
-        console.error('Error al eliminar matrícula:', error);
-        
-        // Intentar manejar el error de manera más específica
-        if (error.response) {
-          if (error.response.status === 500) {
-            // Si es un error 500, podría ser un problema con la asociación a ventas
-            // Intentamos cambiar solo el estado a inactivo
-            try {
-              await axios.put(`${API_URL}/matriculas/${matricula._id}`, { estado: false });
-              showSuccess(`Se ha cambiado el estado de la matrícula ${matricula.nombre} a inactivo`);
-              fetchMatriculas(); // Recargar la lista de matrículas
-              return;
-            } catch (stateError) {
-              console.error('Error al cambiar estado después de error 500:', stateError);
-            }
+    setConfirmationDialog({
+      open: true,
+      title: 'Confirmar Eliminación',
+      message: `¿Está seguro de eliminar la matrícula ${matricula.nombre}?`,
+      onConfirm: async () => {
+        try {
+          const response = await axios.delete(`${API_URL}/matriculas/${matricula._id}`);
+          // Verificar si la matrícula fue eliminada o solo cambiada a inactivo
+          if (response.data.matricula) {
+            // La matrícula estaba asociada a una venta y se cambió a inactivo
+            showSuccess(response.data.message || `La matrícula ${matricula.nombre} ha sido cambiada a inactivo`);
+          } else {
+            // La matrícula fue eliminada completamente
+            showSuccess(`La matrícula ${matricula.nombre} ha sido eliminada exitosamente`);
           }
-          showError(`Error al eliminar la matrícula ${matricula.nombre}: ${error.response.data?.message || error.message}`);
-        } else {
-          showError(`Error al eliminar la matrícula ${matricula.nombre}`);
+          fetchMatriculas(); // Recargar la lista de matrículas
+        } catch (error) {
+          console.error('Error al eliminar matrícula:', error);
+          // Intentar manejar el error de manera más específica
+          if (error.response) {
+            if (error.response.status === 500) {
+              // Si es un error 500, podría ser un problema con la asociación a ventas
+              // Intentamos cambiar solo el estado a inactivo
+              try {
+                await axios.put(`${API_URL}/matriculas/${matricula._id}`, { estado: false });
+                showSuccess(`Se ha cambiado el estado de la matrícula ${matricula.nombre} a inactivo`);
+                fetchMatriculas(); // Recargar la lista de matrículas
+                setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null });
+                return;
+              } catch (stateError) {
+                console.error('Error al cambiar estado después de error 500:', stateError);
+              }
+            }
+            showError(`Error al eliminar la matrícula ${matricula.nombre}: ${error.response.data?.message || error.message}`);
+          } else {
+            showError(`Error al eliminar la matrícula ${matricula.nombre}`);
+          }
         }
+        setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null });
       }
-    }
+    });
   };
 
   const handleViewMatricula = (matricula) => {
@@ -672,6 +682,16 @@ const CursosMatriculas = () => {
           onSubmit={handleSubmitMatricula}
         />
       </TabPanel>
+
+      <ConfirmationDialog
+        open={confirmationDialog.open}
+        title={confirmationDialog.title}
+        content={confirmationDialog.message}
+        onConfirm={confirmationDialog.onConfirm}
+        onClose={() => setConfirmationDialog({ open: false, title: '', message: '', onConfirm: null })}
+        confirmButtonText="Eliminar"
+        cancelButtonText="Cancelar"
+      />
     </Box>
   );
 };
