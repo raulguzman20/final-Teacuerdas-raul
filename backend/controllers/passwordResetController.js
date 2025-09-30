@@ -1,25 +1,11 @@
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const Usuario = require('../models/usuario');
 const PasswordReset = require('../models/PasswordReset');
 const bcryptjs = require('bcryptjs');
 
-// Configuración del transporter de nodemailer
-const transporter = nodemailer.createTransport({
-  host: 'smtp.sendgrid.net',
-  port: 587,
-  secure: false,
-  auth: {
-    user: 'apikey',
-    pass: process.env.SENDGRID_API_KEY
-  },
-  // Evitar bloqueos prolongados del socket SMTP
-  pool: true,
-  maxConnections: 1,
-  maxMessages: 5,
-  connectionTimeout: 15000,
-  socketTimeout: 15000
-});
+// Configuración de SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // POST /forgot-password - Solicitar recuperación de contraseña
 const forgotPassword = async (req, res) => {
@@ -61,34 +47,30 @@ const forgotPassword = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'https://mgasoftwareapp.web.app';
     const resetLink = `${frontendUrl}/reset-password?token=${token}`;
     
-    const mailOptions = {
-      from: process.env.SENDGRID_FROM_EMAIL,
+    const msg = {
       to: email,
+      from: process.env.SENDGRID_FROM_EMAIL,
       subject: 'MGA RESTABLECER CONTRASEÑA',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Recuperación de Contraseña</h2>
           <p>Hola ${usuario.nombre},</p>
-          <p>Hemos recibido una solicitud para restablecer tu contraseña. Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
+          <p>Haz clic en el siguiente enlace para crear una nueva contraseña:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">Restablecer Contraseña</a>
           </div>
-          <p>Este enlace expirará en 1 hora por motivos de seguridad.</p>
-          <p>Si no solicitaste este cambio, puedes ignorar este correo.</p>
-          <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-          <p style="color: #666; font-size: 12px;">Este es un correo automático, por favor no respondas a este mensaje.</p>
+          <p>Este enlace expirará en 1 hora.</p>
         </div>
       `
     };
 
     // Enviar el correo de manera asíncrona para evitar bloquear la respuesta HTTP
-    transporter.sendMail(mailOptions)
-      .then(info => {
-        console.log('Password reset email sent:', info.messageId)
-      })
-      .catch(err => {
-        console.error('Error enviando correo de restablecimiento:', err)
-      })
+    try {
+      await sgMail.send(msg);
+      console.log('Password reset email sent');
+    } catch (err) {
+      console.error('Error enviando correo de restablecimiento:', err);
+    }
 
     // Responder inmediatamente para evitar timeouts en el cliente
     res.status(200).json({
