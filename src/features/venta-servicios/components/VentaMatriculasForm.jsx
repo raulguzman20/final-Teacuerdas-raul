@@ -1,6 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import axios from "axios"
+import { API_CONFIG } from "../../../shared/config/api.config.js"
 import {
   Dialog,
   Checkbox,
@@ -58,6 +60,11 @@ export const VentaMatriculasForm = ({
   const [activeStep, setActiveStep] = useState(0)
   const [transition, setTransition] = useState("slideLeft")
   const [alertMessage, setAlertMessage] = useState({ show: false, message: "", severity: "info" })
+  // Estado para búsqueda remota de beneficiarios
+  const [benefSearch, setBenefSearch] = useState("")
+  const [benefOptions, setBenefOptions] = useState([])
+  const [benefLoading, setBenefLoading] = useState(false)
+  const [benefError, setBenefError] = useState("")
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [selectedBeneficiario, setSelectedBeneficiario] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -201,19 +208,68 @@ export const VentaMatriculasForm = ({
     })
   }
 
-  // Filtrar beneficiarios disponibles (sin "cliente" en clienteId y sin matrícula activa)
+  // Filtrar beneficiarios disponibles:
+  // - Incluir registros que son beneficiarios (clienteId === _id) o dependientes (clienteId != _id)
+  // - Excluir registros que son solo clientes (clienteId === 'cliente')
+  // - Excluir beneficiarios con matrícula vigente
   const getBeneficiariosDisponibles = () => {
     return beneficiarios.filter((beneficiario) => {
-      // Excluir los que tienen "cliente" en clienteId (son solo clientes)
-      const clienteIdStr = String(beneficiario.clienteId || "").toLowerCase()
-      if (clienteIdStr.includes("cliente")) {
-        return false
-      }
+      const clienteIdStr = String(beneficiario.clienteId ?? "").toLowerCase()
+      const selfIdStr = String(beneficiario._id ?? "").toLowerCase()
+
+      // Es beneficiario si:
+      // 1) clienteId === _id (cliente es también beneficiario), o
+      // 2) clienteId es distinto de _id y distinto de 'cliente' (beneficiario dependiente)
+      const esBeneficiario =
+        clienteIdStr === selfIdStr || (clienteIdStr && clienteIdStr !== "cliente" && clienteIdStr !== selfIdStr)
+
+      if (!esBeneficiario) return false
 
       // Excluir los que ya tienen matrícula activa (vigente por estado y fecha)
       return !hasActiveMatricula(beneficiario._id)
     })
   }
+
+  // Utilidad para aplicar las mismas normas a un listado arbitrario
+  const filtrarSegunNormas = (lista) => {
+    return (lista || []).filter((beneficiario) => {
+      const clienteIdStr = String(beneficiario.clienteId ?? "").toLowerCase()
+      const selfIdStr = String(beneficiario._id ?? "").toLowerCase()
+      const esBeneficiario =
+        clienteIdStr === selfIdStr || (clienteIdStr && clienteIdStr !== "cliente" && clienteIdStr !== selfIdStr)
+      if (!esBeneficiario) return false
+      return !hasActiveMatricula(beneficiario._id)
+    })
+  }
+
+  // Buscar beneficiarios en la API con el término actual y aplicar normas
+  const fetchBeneficiariosBySearch = async (term) => {
+    try {
+      setBenefLoading(true)
+      setBenefError("")
+      const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.BENEFICIARIOS}${term ? `?search=${encodeURIComponent(term)}` : ""}`
+      const resp = await axios.get(url)
+      const data = Array.isArray(resp.data?.beneficiarios) ? resp.data.beneficiarios : resp.data
+      // El backend ya aplica las normas; usar directamente
+      setBenefOptions(Array.isArray(data) ? data : [])
+    } catch (e) {
+      console.error("Error al buscar beneficiarios:", e)
+      setBenefError("No se pudo cargar beneficiarios")
+      setBenefOptions([])
+    } finally {
+      setBenefLoading(false)
+    }
+  }
+
+  // Debounce simple de búsqueda
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (!isEditing && !showCreateForm) {
+        fetchBeneficiariosBySearch(benefSearch)
+      }
+    }, 300)
+    return () => clearTimeout(handler)
+  }, [benefSearch, isEditing, showCreateForm])
 
   // Función para capitalizar la primera letra
   const capitalizeFirstLetter = (string) => {
@@ -868,7 +924,7 @@ export const VentaMatriculasForm = ({
   }, [activeStep, isEditing, matriculaData.fechaInicio])
 
   // Manejar envío del formulario
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isSubmitting) {
       console.log("Formulario ya está siendo enviado, ignorando...")
       return
@@ -895,6 +951,7 @@ export const VentaMatriculasForm = ({
           message: "Por favor complete todos los campos obligatorios de la matrícula (fechas y tipo de matrícula)",
           severity: "error",
         })
+        setIsSubmitting(false)
         return
       }
 
@@ -905,6 +962,7 @@ export const VentaMatriculasForm = ({
           message: "Por favor complete todos los campos obligatorios del pago (fecha y método de pago)",
           severity: "error",
         })
+        setIsSubmitting(false)
         return
       }
 
@@ -1182,8 +1240,8 @@ export const VentaMatriculasForm = ({
         numeroTransaccion: pagoData.numeroTransaccion,
       }
 
-      // Enviar todo al padre
-      onSubmit({
+      // Enviar todo al padre y esperar a que termine para mantener el loader
+      await onSubmit({
         matricula,
         beneficiario,
         usuarioBeneficiario,
@@ -1250,9 +1308,17 @@ export const VentaMatriculasForm = ({
                   Seleccionar Beneficiario
                 </Typography>
                 <Autocomplete
-                  options={getBeneficiariosDisponibles()}
+                  options={benefOptions.length ? benefOptions : filtrarSegunNormas(beneficiarios)}
                   getOptionLabel={(option) => `${option.nombre} ${option.apellido} - ${option.numero_de_documento}`}
                   value={selectedBeneficiario}
+                  loading={benefLoading}
+                  noOptionsText={benefLoading ? "Buscando..." : benefError || "No hay beneficiarios disponibles"}
+                  onOpen={() => {
+                    if (benefOptions.length === 0) fetchBeneficiariosBySearch(benefSearch)
+                  }}
+                  onInputChange={(event, value) => {
+                    setBenefSearch(value || "")
+                  }}
                   onChange={(event, newValue) => {
                     handleBeneficiarioSelection(newValue)
                     if (newValue) {
@@ -1294,25 +1360,32 @@ export const VentaMatriculasForm = ({
                             <SearchIcon />
                           </InputAdornment>
                         ),
+                        endAdornment: (
+                          <>
+                            {benefLoading ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
                       }}
                     />
                   )}
                   renderOption={(props, option) => (
-                    <Box component="li" {...props}>
-                      <Avatar sx={{ bgcolor: "#0455a2", mr: 2 }}>
-                        <SchoolIcon />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body1">
-                          {option.nombre} {option.apellido}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {option.tipo_de_documento}: {option.numero_de_documento}
-                        </Typography>
+                    <li {...props}>
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Avatar sx={{ bgcolor: "#0455a2", mr: 2 }}>
+                          <SchoolIcon />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="body1">
+                            {option.nombre} {option.apellido}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {option.tipo_de_documento}: {option.numero_de_documento}
+                          </Typography>
+                        </Box>
                       </Box>
-                    </Box>
+                    </li>
                   )}
-                  noOptionsText="No hay beneficiarios disponibles"
                   sx={{ mb: 2 }}
                 />
                 <Box sx={{ display: "flex", justifyContent: "center" }}>

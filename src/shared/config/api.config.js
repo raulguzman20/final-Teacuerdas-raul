@@ -9,6 +9,7 @@ export const API_CONFIG = {
     USUARIOS_HAS_ROL: '/usuarios_has_rol',
     BENEFICIARIOS: '/beneficiarios',
     CURSOS: '/cursos',
-    VENTAS: '/ventas'
+    VENTAS: '/ventas',
+    EMAIL_WELCOME: '/email/welcome'
   }
 };

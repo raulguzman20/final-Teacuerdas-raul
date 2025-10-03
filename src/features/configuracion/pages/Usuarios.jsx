@@ -7,6 +7,7 @@ import { FormModal } from "../../../shared/components/FormModal"
 import { StatusButton } from "../../../shared/components/StatusButton"
 import { UserRoleAssignment } from "../../../shared/components/UserRoleAssignment"
 import { ConfirmationDialog } from '../../../shared/components/ConfirmationDialog'
+import { emailService } from '../../../shared/services/email.service'
 import axios from 'axios'
 import { Button, Box, Typography, Chip, Alert, Snackbar } from "@mui/material"
 import { PersonAdd as PersonAddIcon } from "@mui/icons-material"
@@ -385,6 +386,19 @@ const normalizarRol = (rolId) => {
         });
       } else {
         await axios.post("https://apiwebmga.onrender.com/api/usuarios", datos);
+
+        // Enviar correo de bienvenida tras crear usuario sin alterar alertas/CRUD
+        try {
+          await emailService.sendWelcomeEmail({
+            email: datos.correo,
+            nombre: datos.nombre,
+            apellido: datos.apellido,
+            username: datos.correo,
+            password: datos.contrasena,
+          });
+        } catch (emailError) {
+          console.error('Fallo envío correo de bienvenida (no bloquea):', emailError);
+        }
         setAlert({
           open: true,
           message: 'Usuario creado correctamente',

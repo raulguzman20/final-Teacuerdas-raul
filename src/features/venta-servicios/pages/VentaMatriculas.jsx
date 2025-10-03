@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import axios from "axios"
+import emailService from "../../../shared/services/email.service"
 import { GenericList } from "../../../shared/components/GenericList"
 import { DetailModal } from "../../../shared/components/DetailModal"
 import { VentaMatriculasForm } from "../components/VentaMatriculasForm"
@@ -366,6 +367,20 @@ const VentaMatriculas = () => {
               console.error("No se pudo obtener el ID del usuario cliente desde la respuesta:", usuarioClienteData)
               throw new Error("No se pudo obtener el ID del usuario cliente")
             }
+            // Enviar correo de bienvenida al CLIENTE recién creado
+            try {
+              await emailService.sendWelcomeEmail({
+                email: cliente.correo || `${cliente.numeroDocumento}@cliente.com`,
+                nombre: cliente.nombre,
+                apellido: cliente.apellido,
+                username: cliente.correo || `${cliente.numeroDocumento}@cliente.com`,
+                password: cliente.contrasena || "123456",
+              })
+              console.log("Correo de bienvenida enviado al cliente correctamente")
+            } catch (emailError) {
+              console.error("Error al enviar correo de bienvenida al cliente:", emailError)
+              // Continuar el flujo incluso si falla el correo
+            }
             // Create USUARIO_HAS_ROL for CLIENT
             const rolesResponse = await axios.get(`${API_BASE_URL}/roles`)
             const roles = Array.isArray(rolesResponse.data.roles) ? rolesResponse.data.roles : rolesResponse.data
@@ -421,15 +436,27 @@ const VentaMatriculas = () => {
             clienteId: updateClienteId,
           })
         } else {
+          // Normalizar datos del usuario beneficiario cuando el cliente es beneficiario
+          const usuarioBenefDatos = clienteEsBeneficiario
+            ? {
+                nombre: cliente.nombre,
+                apellido: cliente.apellido,
+                email: cliente.correo || `${cliente.numeroDocumento}@cliente.com`,
+                contrasena: cliente.contrasena || "123456",
+                documento: cliente.numeroDocumento,
+                telefono: cliente.telefono,
+              }
+            : usuarioBeneficiario
+
           // Create USER for BENEFICIARY
           const usuarioBeneficiarioResponse = await axios.post(`${API_BASE_URL}/usuarios`, {
-            nombre: usuarioBeneficiario.nombre,
-            apellido: usuarioBeneficiario.apellido,
-            correo: usuarioBeneficiario.email,
-            contrasena: usuarioBeneficiario.contrasena,
-            documento: usuarioBeneficiario.documento,
+            nombre: usuarioBenefDatos.nombre,
+            apellido: usuarioBenefDatos.apellido,
+            correo: usuarioBenefDatos.email,
+            contrasena: usuarioBenefDatos.contrasena,
+            documento: usuarioBenefDatos.documento,
             tipo_de_documento: beneficiario.tipoDocumento,
-            telefono: beneficiario.telefono || usuarioBeneficiario.telefono,
+            telefono: beneficiario.telefono || usuarioBenefDatos.telefono,
             estado: true,
           })
           const usuarioBeneficiarioData = usuarioBeneficiarioResponse?.data || {}
@@ -477,19 +504,19 @@ const VentaMatriculas = () => {
           const beneficiarioResponse = await axios.post(`${API_BASE_URL}/beneficiarios`, beneficiarioPayload)
           beneficiarioId = beneficiarioResponse.data._id
 
-          // Send welcome email ONLY when creating beneficiary from form
+          // Enviar correo de bienvenida SOLO al crear beneficiario desde el formulario
           try {
-            await axios.post(`${API_BASE_URL}/email/welcome`, {
-              email: usuarioBeneficiario.email,
-              nombre: usuarioBeneficiario.nombre,
-              apellido: usuarioBeneficiario.apellido,
-              username: usuarioBeneficiario.email,
-              password: usuarioBeneficiario.contrasena,
+            await emailService.sendWelcomeEmail({
+              email: usuarioBenefDatos.email,
+              nombre: usuarioBenefDatos.nombre,
+              apellido: usuarioBenefDatos.apellido,
+              username: usuarioBenefDatos.email,
+              password: usuarioBenefDatos.contrasena,
             })
             console.log("Correo de bienvenida enviado correctamente")
           } catch (emailError) {
             console.error("Error al enviar correo de bienvenida:", emailError)
-            // Continue flow even if email fails
+            // Continuar el flujo incluso si falla el correo
           }
 
           // Update clienteId if cliente es beneficiario

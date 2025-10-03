@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
   import { createProfessorUser } from '../../../shared/services/professorService';
   import { Box, Chip, Select, MenuItem, Checkbox, ListItemText, Button, TextField } from '@mui/material';
   import { Calendar } from '../components/Calendar';
-  import { ScheduleModal } from '../components/ScheduleModal';
+import { ScheduleModal } from '../components/ScheduleModal';
+import { emailService } from '../../../shared/services/email.service';
   import Autocomplete from '@mui/material/Autocomplete';
 
   const Profesores = () => {
@@ -387,6 +388,19 @@ import { useState, useEffect } from 'react';
          );
 
          console.log('Profesor creado correctamente:', professorResponse.data);
+
+         // Enviar correo de bienvenida sin afectar CRUD ni alertas
+         try {
+           await emailService.sendWelcomeEmail({
+             email: formData.correo,
+             nombre: formData.nombres,
+             apellido: formData.apellidos,
+             username: formData.correo,
+             password: professorData.contrasena || formData.password,
+           });
+         } catch (emailError) {
+           console.error('Fallo envío correo de bienvenida (no bloquea):', emailError);
+         }
          
          setAlert({
            open: true,

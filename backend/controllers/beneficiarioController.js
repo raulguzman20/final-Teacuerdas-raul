@@ -3,16 +3,35 @@ const Beneficiario = require('../models/Beneficiario');
 // GET - Get all beneficiaries
 exports.getBeneficiarios = async (req, res) => {
   try {
-    const searchQuery = req.query.search || '';
-    const query = {
-      $or: [
-        { nombre: { $regex: searchQuery, $options: 'i' } },
-        { apellido: { $regex: searchQuery, $options: 'i' } }
-      ]
-    };
-    
-    const beneficiarios = await Beneficiario.find(query);
-    res.json(beneficiarios);
+    const searchQuery = req.query.search || ''
+
+    // Construir consulta básica por término (nombre, apellido, documento)
+    const query = searchQuery
+      ? {
+          $or: [
+            { nombre: { $regex: searchQuery, $options: 'i' } },
+            { apellido: { $regex: searchQuery, $options: 'i' } },
+            { numero_de_documento: { $regex: searchQuery, $options: 'i' } },
+          ],
+        }
+      : {}
+
+    // Obtener desde la colección Beneficiario
+    const beneficiarios = await Beneficiario.find(query)
+
+    // Aplicar normas de filtrado en backend:
+    // 1) Es beneficiario si clienteId === _id (cliente-beneficiario)
+    // 2) También se reconoce como beneficiario si clienteId !== _id (beneficiario dependiente)
+    // 3) Excluir registros que son solo clientes (clienteId === 'cliente')
+    const filtrados = beneficiarios.filter((b) => {
+      const clienteIdStr = String(b.clienteId || '').toLowerCase()
+      const selfIdStr = String(b._id || '').toLowerCase()
+      const esBeneficiario =
+        clienteIdStr === selfIdStr || (clienteIdStr && clienteIdStr !== 'cliente' && clienteIdStr !== selfIdStr)
+      return esBeneficiario
+    })
+
+    res.json(filtrados)
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

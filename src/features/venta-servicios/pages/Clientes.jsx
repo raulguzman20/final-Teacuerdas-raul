@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import emailService from '../../../shared/services/email.service';
 import { GenericList } from '../../../shared/components/GenericList';
 import { DetailModal } from '../../../shared/components/DetailModal';
 import { FormModal } from '../../../shared/components/FormModal';
@@ -265,12 +266,12 @@ const Clientes = () => {
 
         // Enviar correo de bienvenida (no interrumpe flujo si falla)
         try {
-          await axios.post('https://apiwebmga.onrender.com/api/email/welcome', {
+          await emailService.sendWelcomeEmail({
             email: usuarioData.correo,
             nombre: usuarioData.nombre,
             apellido: usuarioData.apellido,
             username: usuarioData.correo,
-            password: usuarioData.contrasena
+            password: usuarioData.contrasena,
           });
         } catch (emailError) {
           console.error('Error al enviar correo de bienvenida:', emailError);

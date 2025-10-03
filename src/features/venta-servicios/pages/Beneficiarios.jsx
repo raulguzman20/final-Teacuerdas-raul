@@ -7,6 +7,7 @@ import { StatusButton } from '../../../shared/components/StatusButton';
 import { Snackbar, Alert } from '@mui/material';
 import { useAuth } from '../../../features/auth/context/AuthContext';
 import { ConfirmationDialog } from '../../../shared/components/ConfirmationDialog';
+import { emailService } from '../../../shared/services/email.service';
 
 // Configuración de la API - Corrección del error de process.env
 const API_BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_API_URL) || 'https://apiwebmga.onrender.com';
@@ -166,6 +167,17 @@ const Beneficiarios = () => {
 
       const beneficiarios = beneficiariosResponse.data;
 
+      // Utilidad: aplicar normas de reconocimiento de beneficiario
+      const filtrarSegunNormas = (lista) => {
+        return (Array.isArray(lista) ? lista : []).filter((b) => {
+          const clienteIdStr = String(b?.clienteId ?? '').toLowerCase();
+          const selfIdStr = String(b?._id ?? '').toLowerCase();
+          const esBeneficiario =
+            clienteIdStr === selfIdStr || (clienteIdStr && clienteIdStr !== 'cliente' && clienteIdStr !== selfIdStr);
+          return esBeneficiario;
+        });
+      };
+
       // Intentar obtener usuarios_has_rol (opcional)
       let usuariosHasRol = [];
       try {
@@ -177,12 +189,8 @@ const Beneficiarios = () => {
         // Continuar sin esta información
       }
 
-      // Filtrar solo registros que son beneficiarios (excluir clientes)
-      let beneficiariosFiltrados = beneficiarios.filter((beneficiario) => {
-        const clienteIdStr = String(beneficiario.clienteId || '').toLowerCase();
-        const selfIdStr = String(beneficiario._id || '');
-        return clienteIdStr !== selfIdStr.toLowerCase() && clienteIdStr !== 'cliente';
-      });
+      // Aplicar normas sobre la lista proveniente de backend (colección Beneficiario)
+      let beneficiariosFiltrados = filtrarSegunNormas(beneficiarios);
 
       // Si el usuario es cliente, filtrar solo beneficiarios pertenecientes a ese cliente
       if (user && user.role === 'cliente') {
@@ -249,18 +257,21 @@ const Beneficiarios = () => {
 
         if (clienteRefId) {
           console.log('Cliente identificado. Filtrando beneficiarios por clienteId:', clienteRefId);
-          beneficiariosFiltrados = beneficiarios.filter((b) => String(b.clienteId) === clienteRefId);
+          // Primero aplicar normas y luego restringir por clienteId
+          beneficiariosFiltrados = filtrarSegunNormas(beneficiarios).filter(
+            (b) => String(b.clienteId) === clienteRefId
+          );
           // Fallback adicional: si no hay resultados, usar vínculo usuario_has_rol
           if ((!Array.isArray(beneficiariosFiltrados) || beneficiariosFiltrados.length === 0) && clienteUhr?._id) {
             console.log('Sin resultados por clienteId; aplicando fallback usuario_has_rolId:', clienteUhr._id);
-            beneficiariosFiltrados = beneficiarios.filter(
+            beneficiariosFiltrados = filtrarSegunNormas(beneficiarios).filter(
               (b) => String(b.usuario_has_rolId) === String(clienteUhr._id)
             );
           }
         } else if (clienteUhr?._id) {
           // No se pudo deducir clienteId, pero sí existe vínculo usuario_has_rol
           console.log('Filtrando por usuario_has_rolId al no contar con clienteId:', clienteUhr._id);
-          beneficiariosFiltrados = beneficiarios.filter(
+          beneficiariosFiltrados = filtrarSegunNormas(beneficiarios).filter(
             (b) => String(b.usuario_has_rolId) === String(clienteUhr._id)
           );
         } else {
@@ -620,6 +631,19 @@ const Beneficiarios = () => {
 
       } else {
         await apiClient.post('/api/beneficiarios', beneficiarioData);
+
+        // Enviar correo de bienvenida sin afectar el flujo CRUD/alertas
+        try {
+          await emailService.sendWelcomeEmail({
+            email: formData.correo,
+            nombre: formData.nombre,
+            apellido: formData.apellido,
+            username: formData.correo,
+            password: formData.contrasena,
+          });
+        } catch (emailError) {
+          console.error('Fallo envío correo de bienvenida (no bloquea):', emailError);
+        }
 
         // Mostrar mensaje de éxito para creación
         setAlertMessage(`Beneficiario "${formData.nombre} ${formData.apellido}" creado exitosamente.`);
